@@ -35,7 +35,7 @@ A high-performance CNC machine rendering framework for robot arms, implemented i
 1. **Clone the Repository:**
    ```bash
    git clone https://github.com/agentdavo/uCNC-machineSimModule.git
-   cd cnc-rendering-framework
+   cd uCNC-machineSimModule
    ```
 
 2. **Install Dependencies:**
@@ -184,7 +184,7 @@ This project is licensed under the [MIT License](LICENSE).
 ## 📚 Additional Resources
 
 - **TinyGL Documentation:**  
-  Refer to the [TinyGL README](https://github.com/C-Chads) for more detailed information on TinyGL's features and usage.
+  Refer to the [TinyGL README](https://github.com/C-Chads/tinygl) for more detailed information on TinyGL's features and usage.
 
 - **libstlio Documentation:**  
   Visit the [libstlio repository](https://github.com/Linden/libstlio) for detailed instructions on handling STL files.
@@ -264,7 +264,7 @@ int main(int argc, char *argv[]) {
 ## 🤝 Acknowledgments
 
 - **[Fabrice Bellard](https://bellard.org/):** Creator of the original TinyGL.
-- **[C-Chads](https://github.com/C-Chads):** Maintainers of the enhanced TinyGL fork with additional features and optimizations.
+- **[C-Chads](https://github.com/C-Chads/tinygl):** Maintainers of the enhanced TinyGL fork with additional features and optimizations.
 - **[stb Libraries](https://github.com/nothings/stb):** For providing `stb_image_write.h`.
 - **[libstlio](https://github.com/Linden/libstlio):** For facilitating STL file handling.
 
