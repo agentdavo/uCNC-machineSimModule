@@ -1,4 +1,3 @@
-```markdown
 # CNC Machine Rendering Framework
 
 A high-performance CNC machine rendering framework for robot arms, implemented in C using GNU99 and the enhanced TinyGL by Fabrice Bellard. This framework enables you to load STL models, assemble them hierarchically, and render high-quality images with dynamic camera controls and comprehensive performance profiling.
