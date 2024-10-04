@@ -1,0 +1,9 @@
+[submodule "tinygl"]
+	path = tinygl
+	url = https://github.com/C-Chads/tinygl
+[submodule "libstlio"]
+	path = libstlio
+	url = https://github.com/tspspi/libstlio
+[submodule "stb"]
+	path = stb
+	url = https://github.com/nothings/stb
