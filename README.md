@@ -50,16 +50,20 @@ A high-performance CNC machine rendering framework for robot arms, implemented i
 
 3. **Compile TinyGL:**
    ```bash
-   cd path/to/TinyGL/src
-   gcc -O3 -fopenmp -c *.c
+   cd tinygl/src
+   gcc -O3 -c *.c 
    ar rcs libTinyGL.a *.o
    cp libTinyGL.a ../lib
+   cd ..
+   cd SDL_Examples/
+   gcc -O3 menu.c -o menu -lSDL ../lib/libTinyGL.a -lm
+   gcc -O3 gears.c -o gears -lSDL ../lib/libTinyGL.a -lm
    ```
 
 4. **Compile the CNC Rendering Framework:**
    ```bash
    cd ../../
-   gcc -O3 -fopenmp -o render_robot render_robot.c -L./lib -lTinyGL -lm
+   gcc -O3 -o render_robot render_robot.c -L./lib -lTinyGL -lm
    ```
    - `-O3`: Enables high-level optimizations.
    - `-fopenmp`: Enables OpenMP for multithreading support.
