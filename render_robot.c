@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <time.h>       // For high-resolution timing
+#include <time.h>
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
@@ -56,12 +56,10 @@ typedef struct ucncLight {
 // Global Scene State
 ucncAssembly *globalScene = NULL;
 ucncCamera *globalCamera = NULL;
+ucncLight *globalLight = NULL;
 ZBuffer *globalFramebuffer = NULL;
 int framebufferWidth = 800;
 int framebufferHeight = 600;
-
-// Global Light
-ucncLight *globalLight = NULL;
 
 // --- Performance Profiling Structure ---
 typedef struct {
@@ -97,7 +95,6 @@ void saveFramebufferAsImage(ZBuffer *framebuffer, const char *filename, int widt
     unsigned char *src = framebuffer->pbuf;
     unsigned char *dst = pixels;
 
-    #pragma omp parallel for
     for (int i = 0; i < width * height; i++) {
         dst[3*i]     = src[3*i + 2]; // R
         dst[3*i + 1] = src[3*i + 1]; // G
@@ -343,8 +340,7 @@ void ucncCameraApply(ucncCamera *camera) {
 void addLight(ucncLight *light) {
     if (!light) return;
 
-    // Enable lighting and the specific light
-    glEnable(GL_LIGHTING);
+    // Enable the specific light
     glEnable(light->lightId);
 
     // Set light parameters
