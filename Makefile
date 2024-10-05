@@ -7,23 +7,25 @@
 # Compiler
 CC = gcc
 
+# Directories
+TGL_DIR = tinygl
+STLIO_DIR = libstlio
+STB_DIR = stb
+
 # Compiler Flags
 # -O3: Optimize for maximum speed
 # -fopenmp: Enable OpenMP for multithreading
 # -std=gnu99: Use GNU99 standard
 # -I: Include directories for header files
-CFLAGS = -O3 -fopenmp -std=gnu99 \
-         -I./TinyGL/include \
-         -I./libstlio/include
+CFLAGS = -O3 -std=gnu99 \
+         -I./$(TGL_DIR)/include \
+         -I./$(STLIO_DIR)/include \
+         -I./$(STB_DIR)
 
 # Linker Flags
 # -lm: Link the math library
-# -fopenmp: Link OpenMP library
-LDFLAGS = -lm -fopenmp
-
-# Directories
-TGL_DIR = tinygl
-STLIO_DIR = libstlio
+# -fopenmp: Enable OpenMP for multithreading
+LDFLAGS = -lm
 
 # Source Files
 # All .c files within TinyGL/src and libstlio/src
@@ -40,7 +42,7 @@ STLIO_OBJ = $(STLIO_SRC:.c=.o)
 MAIN_OBJ = $(MAIN_SRC:.c=.o)
 
 # Static Libraries
-TGL_LIB = libTinyGL.a
+TGL_LIB = libtinygl.a
 STLIO_LIB = libstlio.a
 
 # Final Executable
@@ -80,7 +82,8 @@ $(STLIO_DIR)/src/%.o: $(STLIO_DIR)/src/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Compile main application source file into object file
-%.o: %.c
+# Explicitly specify dependency on stb_image_write.h
+$(MAIN_OBJ): $(MAIN_SRC) $(STB_DIR)/stb_image_write.h
 	@echo "Compiling main application: $<"
 	$(CC) $(CFLAGS) -c $< -o $@
 

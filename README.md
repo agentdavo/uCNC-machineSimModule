@@ -24,7 +24,7 @@ A high-performance CNC machine rendering framework for robot arms, implemented i
 
 - **Compiler:** GCC supporting GNU99.
 - **Libraries:**
-  - [TinyGL](https://github.com/C-Chads) by Fabrice Bellard (Enhanced Fork by C-Chads)
+  - [TinyGL](https://github.com/C-Chads/tinygl) by Fabrice Bellard (Enhanced Fork by C-Chads)
   - [libstlio](https://github.com/Linden/libstlio) for STL file handling
   - [stb_image_write](https://github.com/nothings/stb) for image exporting
   - [OpenMP](https://www.openmp.org/) for multithreading support
@@ -32,43 +32,102 @@ A high-performance CNC machine rendering framework for robot arms, implemented i
 
 ## 🛠 Installation
 
-1. **Clone the Repository:**
-   ```bash
-   git clone https://github.com/agentdavo/uCNC-machineSimModule.git
-   cd uCNC-machineSimModule
-   ```
+Follow these steps to set up and compile the **CNC Machine Rendering Framework**:
 
-2. **Install Dependencies:**
-   - **TinyGL:**
-     Follow the installation instructions from the [TinyGL repository](https://github.com/fogleman/TinyGL). Ensure you are using the enhanced fork by C-Chads for additional features.
-     
-   - **libstlio:**
-     Follow the installation instructions from the [libstlio repository](https://github.com/Linden/libstlio).
-     
-   - **stb_image_write:**
-     The `stb_image_write.h` file is included in the repository. Ensure it's in the include path.
+### 1. **Clone the Repository**
 
-3. **Compile TinyGL:**
-   ```bash
-   cd tinygl/src
-   gcc -O3 -c *.c 
-   ar rcs libTinyGL.a *.o
-   cp libTinyGL.a ../lib
-   cd ..
-   cd SDL_Examples/
-   gcc -O3 menu.c -o menu -lSDL ../lib/libTinyGL.a -lm
-   gcc -O3 gears.c -o gears -lSDL ../lib/libTinyGL.a -lm
-   ```
+Begin by cloning the repository to your local machine:
 
-4. **Compile the CNC Rendering Framework:**
-   ```bash
-   cd ../../
-   gcc -O3 -o render_robot render_robot.c -L./lib -lTinyGL -lm
-   ```
-   - `-O3`: Enables high-level optimizations.
-   - `-fopenmp`: Enables OpenMP for multithreading support.
-   - `-L./lib`: Links against the TinyGL library.
-   - `-lm`: Links the math library required for mathematical functions.
+```bash
+git clone https://github.com/agentdavo/uCNC-machineSimModule.git
+cd uCNC-machineSimModule
+git submodule update --init --recursive
+```
+
+### 2. **Ensure Dependencies Are Present**
+
+Make sure the following directories and their contents are correctly placed within the project:
+
+- **TinyGL:**
+  - Located in the `tinygl/` directory.
+  - Contains `include/` and `src/` subdirectories with necessary header and source files.
+
+- **libstlio:**
+  - Located in the `libstlio/` directory.
+  - Contains `include/` and `src/` subdirectories with necessary header and source files.
+
+- **stb_image_write:**
+  - Located in the `stb/` directory as `stb_image_write.h`.
+  - Ensure it's correctly placed for the compiler to locate.
+
+Your project directory should resemble the following structure:
+
+```
+project/
+├── Makefile
+├── render_robot.c
+├── stb/
+│   └── stb_image_write.h
+├── tinygl/
+│   ├── include/
+│   │   └── gl.h
+│   └── src/
+│       ├── zbuffer.c
+│       ├── gl.c
+│       └── ... (other TinyGL source files)
+├── libstlio/
+│   ├── include/
+│   │   └── stlio.h
+│   └── src/
+│       ├── stlio.c
+│       └── ... (other libstlio source files)
+└── ... (other project files)
+```
+
+> **Note:** Ensure that all subdirectories (`tinygl/`, `libstlio/`, and `stb/`) contain the necessary files as per the directory structure.
+
+### 3. **Compile the CNC Rendering Framework**
+
+The provided `Makefile` automates the compilation process, handling the building of TinyGL and libstlio, as well as compiling and linking the main application.
+
+Run the following command in the root directory of the project:
+
+```bash
+make
+```
+
+**What This Does:**
+
+- **Compiles TinyGL:**
+  - Compiles all `.c` files within `tinygl/src/` into object files (`.o`).
+  - Archives these object files into the static library `libtinygl.a`.
+
+- **Compiles libstlio:**
+  - Compiles all `.c` files within `libstlio/src/` into object files (`.o`).
+  - Archives these object files into the static library `libstlio.a`.
+
+- **Compiles Main Application:**
+  - Compiles `render_robot.c` into `render_robot.o`, ensuring it includes `stb_image_write.h` from the `stb/` directory.
+
+- **Links Executable:**
+  - Links `render_robot.o` with `libtinygl.a` and `libstlio.a` to produce the final executable `render_robot`.
+
+**Optimizations Included:**
+
+- **`-O3`:** Enables high-level optimizations for maximum performance.
+- **`-std=gnu99`:** Uses the GNU99 standard for C.
+- **`-fopenmp`:** Enables OpenMP for multithreading support.
+- **Include Paths:** Ensures the compiler locates header files in `tinygl/include/`, `libstlio/include/`, and `stb/`.
+
+### 4. **Optional: Use Parallel Compilation**
+
+To speed up the build process by utilizing multiple CPU cores, you can invoke `make` with the `-j` flag followed by the number of jobs. For example, to use all available cores:
+
+```bash
+make -j$(nproc)
+```
+
+This command tells `make` to execute multiple compilation jobs in parallel, significantly reducing build times on multi-core systems.
 
 ## 🎮 Usage
 
@@ -157,7 +216,25 @@ Total Frame Time (ms):
 
 ## 🧹 Cleanup
 
-The program automatically frees allocated memory and closes the framebuffer upon completion. Ensure that all STL files are correctly loaded to prevent memory leaks.
+To remove all compiled object files, static libraries, and the executable, run:
+
+```bash
+make clean
+```
+
+**What This Does:**
+
+- Removes all `.o` files within `tinygl/src/` and `libstlio/src/`.
+- Deletes the static libraries `libtinygl.a` and `libstlio.a`.
+- Deletes the main object file `render_robot.o`.
+- Deletes the final executable `render_robot`.
+
+**Sample Output:**
+
+```
+Cleaning build artifacts...
+Clean complete.
+```
 
 ## 🐞 Troubleshooting
 
@@ -170,12 +247,17 @@ The program automatically frees allocated memory and closes the framebuffer upon
   - Ensure that your system meets the necessary requirements for framebuffer operations.
 
 - **Image Saving Issues:**
-  - Verify that the `stb_image_write.h` is correctly included and accessible.
+  - Verify that the `stb_image_write.h` is correctly included and accessible in the `stb/` directory.
   - Ensure there is sufficient disk space and write permissions in the output directory.
 
 - **Multithreading Issues:**
   - Ensure that the compiler supports OpenMP (`-fopenmp` flag).
   - Verify that your system's hardware supports multithreading if leveraging OpenMP features.
+
+- **Makefile Errors:**
+  - Ensure that all dependencies are correctly placed in their respective directories.
+  - Verify that `stb_image_write.h` is located in the `stb/` directory.
+  - Check for typos or incorrect paths in the `Makefile`.
 
 ## 📝 Contributing
 
@@ -288,5 +370,3 @@ int main(int argc, char *argv[]) {
 
 - **Documentation Enhancements:**  
   Provide more comprehensive documentation and examples to aid new users in utilizing the framework's full potential.
-
----
