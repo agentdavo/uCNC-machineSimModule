@@ -1,0 +1,101 @@
+# Makefile for CNC Machine Rendering Framework
+
+# =============================================================================
+#                                   VARIABLES
+# =============================================================================
+
+# Compiler
+CC = gcc
+
+# Compiler Flags
+# -O3: Optimize for maximum speed
+# -fopenmp: Enable OpenMP for multithreading
+# -std=gnu99: Use GNU99 standard
+# -I: Include directories for header files
+CFLAGS = -O3 -fopenmp -std=gnu99 \
+         -I./TinyGL/include \
+         -I./libstlio/include
+
+# Linker Flags
+# -lm: Link the math library
+# -fopenmp: Link OpenMP library
+LDFLAGS = -lm -fopenmp
+
+# Directories
+TGL_DIR = tinygl
+STLIO_DIR = libstlio
+
+# Source Files
+# All .c files within TinyGL/src and libstlio/src
+TGL_SRC = $(wildcard $(TGL_DIR)/src/*.c)
+STLIO_SRC = $(wildcard $(STLIO_DIR)/src/*.c)
+
+# Main Application Source
+MAIN_SRC = render_robot.c
+
+# Object Files
+# Replace .c with .o for object files
+TGL_OBJ = $(TGL_SRC:.c=.o)
+STLIO_OBJ = $(STLIO_SRC:.c=.o)
+MAIN_OBJ = $(MAIN_SRC:.c=.o)
+
+# Static Libraries
+TGL_LIB = libTinyGL.a
+STLIO_LIB = libstlio.a
+
+# Final Executable
+TARGET = render_robot
+
+# =============================================================================
+#                                   TARGETS
+# =============================================================================
+
+# Default target
+all: $(TARGET)
+
+# Link the final executable
+$(TARGET): $(MAIN_OBJ) $(TGL_LIB) $(STLIO_LIB)
+	@echo "Linking $@..."
+	$(CC) $(CFLAGS) -o $@ $(MAIN_OBJ) $(TGL_LIB) $(STLIO_LIB) $(LDFLAGS)
+	@echo "Build complete: $@"
+
+# Create TinyGL static library
+$(TGL_LIB): $(TGL_OBJ)
+	@echo "Creating static library $@..."
+	ar rcs $@ $^
+
+# Create libstlio static library
+$(STLIO_LIB): $(STLIO_OBJ)
+	@echo "Creating static library $@..."
+	ar rcs $@ $^
+
+# Compile TinyGL source files into object files
+$(TGL_DIR)/src/%.o: $(TGL_DIR)/src/%.c
+	@echo "Compiling TinyGL: $<"
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Compile libstlio source files into object files
+$(STLIO_DIR)/src/%.o: $(STLIO_DIR)/src/%.c
+	@echo "Compiling libstlio: $<"
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Compile main application source file into object file
+%.o: %.c
+	@echo "Compiling main application: $<"
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Clean build artifacts
+clean:
+	@echo "Cleaning build artifacts..."
+	rm -f $(TGL_DIR)/src/*.o
+	rm -f $(STLIO_DIR)/src/*.o
+	rm -f $(TGL_LIB) $(STLIO_LIB)
+	rm -f $(MAIN_OBJ)
+	rm -f $(TARGET)
+	@echo "Clean complete."
+
+# =============================================================================
+#                                   PHONY TARGETS
+# =============================================================================
+
+.PHONY: all clean
