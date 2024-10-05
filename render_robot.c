@@ -6,30 +6,33 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>       // For high-resolution timing
-#include <sys/time.h>   // For gettimeofday
-#include <omp.h>        // For OpenMP multithreading
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
+// Define M_PI if not defined
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 // --- Actor Structure ---
 typedef struct ucncActor {
-    float originX, originY, originZ;   // Local origin
-    float positionX, positionY, positionZ;  // Position in world space
-    float rotationX, rotationY, rotationZ;  // Rotation in degrees
-    float colorR, colorG, colorB;      // Color (RGB)
-    unsigned char *stlObject;          // STL data buffer
-    unsigned long triangleCount;       // Number of triangles
-    unsigned long stride;              // Stride size for triangle data
+    float originX, originY, originZ;         // Local origin
+    float positionX, positionY, positionZ;   // Position in world space
+    float rotationX, rotationY, rotationZ;   // Rotation in degrees
+    float colorR, colorG, colorB;            // Color (RGB)
+    unsigned char *stlObject;                // STL data buffer
+    unsigned long triangleCount;             // Number of triangles
+    unsigned long stride;                    // Stride size for triangle data
 } ucncActor;
 
 // --- Assembly Structure ---
 typedef struct ucncAssembly {
-    float originX, originY, originZ;   // Local origin
-    float positionX, positionY, positionZ;  // Position in world space
-    float rotationX, rotationY, rotationZ;  // Rotation in degrees
-    ucncActor **actors;                // Array of actors
+    float originX, originY, originZ;         // Local origin
+    float positionX, positionY, positionZ;   // Position in world space
+    float rotationX, rotationY, rotationZ;   // Rotation in degrees
+    ucncActor **actors;                      // Array of actors
     int actorCount;
-    struct ucncAssembly **assemblies;  // Array of assemblies
+    struct ucncAssembly **assemblies;        // Array of assemblies
     int assemblyCount;
 } ucncAssembly;
 
@@ -131,7 +134,7 @@ ucncActor* ucncActorNew(const char *stlFile) {
     );
 
     if (e != stlioE_Ok) {
-        printf("Failed to load STL file '%s': %s\n", stlFile, stlioErrorStringC(e));
+        fprintf(stderr, "Failed to load STL file '%s': %s\n", stlFile, stlioErrorStringC(e));
         free(actor);
         return NULL;
     }
@@ -158,19 +161,14 @@ void ucncActorRender(ucncActor *actor) {
 
     // Render triangles from the STL data
     glBegin(GL_TRIANGLES);
-    #pragma omp parallel for
     for (unsigned long i = 0; i < actor->triangleCount; i++) {
-        struct stlTriangle* lpTriangle = (struct stlTriangle*)((uintptr_t)(actor->stlObject) + actor->stride * i);
+        struct stlTriangle* lpTriangle = (struct stlTriangle*)(actor->stlObject + actor->stride * i);
 
-        // Lock to ensure thread-safe OpenGL calls
-        #pragma omp critical
-        {
-            glNormal3f(lpTriangle->surfaceNormal[0], lpTriangle->surfaceNormal[1], lpTriangle->surfaceNormal[2]);
+        glNormal3f(lpTriangle->surfaceNormal[0], lpTriangle->surfaceNormal[1], lpTriangle->surfaceNormal[2]);
 
-            glVertex3f(lpTriangle->vertices[0][0], lpTriangle->vertices[0][1], lpTriangle->vertices[0][2]);
-            glVertex3f(lpTriangle->vertices[1][0], lpTriangle->vertices[1][1], lpTriangle->vertices[1][2]);
-            glVertex3f(lpTriangle->vertices[2][0], lpTriangle->vertices[2][1], lpTriangle->vertices[2][2]);
-        }
+        glVertex3f(lpTriangle->vertices[0][0], lpTriangle->vertices[0][1], lpTriangle->vertices[0][2]);
+        glVertex3f(lpTriangle->vertices[1][0], lpTriangle->vertices[1][1], lpTriangle->vertices[1][2]);
+        glVertex3f(lpTriangle->vertices[2][0], lpTriangle->vertices[2][1], lpTriangle->vertices[2][2]);
     }
     glEnd();
 
@@ -196,28 +194,26 @@ ucncAssembly* ucncAssemblyNew() {
 
 void ucncAssemblyAddActor(ucncAssembly *assembly, ucncActor *actor) {
     if (!assembly || !actor) return;
-    assembly->actorCount++;
-    ucncActor **temp = realloc(assembly->actors, assembly->actorCount * sizeof(ucncActor*));
+    ucncActor **temp = realloc(assembly->actors, (assembly->actorCount + 1) * sizeof(ucncActor*));
     if (!temp) {
         fprintf(stderr, "Reallocation failed when adding actor to assembly.\n");
-        assembly->actorCount--;
         return;
     }
     assembly->actors = temp;
-    assembly->actors[assembly->actorCount - 1] = actor;
+    assembly->actors[assembly->actorCount] = actor;
+    assembly->actorCount++;
 }
 
 void ucncAssemblyAddAssembly(ucncAssembly *parent, ucncAssembly *child) {
     if (!parent || !child) return;
-    parent->assemblyCount++;
-    ucncAssembly **temp = realloc(parent->assemblies, parent->assemblyCount * sizeof(ucncAssembly*));
+    ucncAssembly **temp = realloc(parent->assemblies, (parent->assemblyCount + 1) * sizeof(ucncAssembly*));
     if (!temp) {
         fprintf(stderr, "Reallocation failed when adding assembly to parent assembly.\n");
-        parent->assemblyCount--;
         return;
     }
     parent->assemblies = temp;
-    parent->assemblies[parent->assemblyCount - 1] = child;
+    parent->assemblies[parent->assemblyCount] = child;
+    parent->assemblyCount++;
 }
 
 void ucncAssemblyRender(ucncAssembly *assembly) {
@@ -356,21 +352,6 @@ void ucncRenderScene(const char *outputFilename) {
     // Render the assembly
     ucncAssemblyRender(globalScene);
 
-    // Optional: Add text annotations using glDrawText
-    glColor3f(1.0f, 1.0f, 1.0f); // White color for text
-    glDrawText("CNC Machine Rendering", 10, 10, 0xFFFFFFFF);
-    
-    // Optional: Apply post-processing effects
-    // Example: Invert Colors
-    GLuint invertColors(GLint x, GLint y, GLuint pixel, GLushort z) {
-        unsigned char r = (pixel >> 24) & 0xFF;
-        unsigned char g = (pixel >> 16) & 0xFF;
-        unsigned char b = (pixel >> 8) & 0xFF;
-        unsigned char a = pixel & 0xFF;
-        return (255 - r) << 24 | (255 - g) << 16 | (255 - b) << 8 | a;
-    }
-    glPostProcess(invertColors);
-
     // Save the framebuffer as an image
     saveFramebufferAsImage(globalFramebuffer, outputFilename, framebufferWidth, framebufferHeight);
 }
@@ -405,9 +386,9 @@ void ucncCameraFree(ucncCamera *camera) {
 
 // --- Function to Get Current Time in Milliseconds ---
 double getCurrentTimeInMs() {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return (double)(tv.tv_sec) * 1000.0 + (double)(tv.tv_usec) / 1000.0;
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (double)(ts.tv_sec) * 1000.0 + (double)(ts.tv_nsec) / 1e6;
 }
 
 // --- Function to Initialize Profiling Statistics ---
@@ -559,7 +540,7 @@ int main(int argc, char *argv[]) {
                 continue;
             }
             ucncAssemblyAddActor(meca500_assy[i], actor);
-            if (i > 0) {
+            if (i > 0 && meca500_assy[i-1]) {
                 ucncAssemblyAddAssembly(meca500_assy[i-1], meca500_assy[i]);  // Connect assemblies hierarchically
             }
         } else {
@@ -569,31 +550,17 @@ int main(int argc, char *argv[]) {
     }
 
     // Set origins
-    if (meca500_assy[0]) {
-        meca500_assy[0]->originX = 0.0f; meca500_assy[0]->originY = 0.0f; meca500_assy[0]->originZ = 0.0f;
-    }
-    if (meca500_assy[1]) {
-        meca500_assy[1]->originX = 0.0f; meca500_assy[1]->originY = 0.0f; meca500_assy[1]->originZ = 135.0f;
-    }
-    if (meca500_assy[2]) {
-        meca500_assy[2]->originX = 0.0f; meca500_assy[2]->originY = 0.0f; meca500_assy[2]->originZ = 135.0f;
-    }
-    if (meca500_assy[3]) {
-        meca500_assy[3]->originX = 135.0f; meca500_assy[3]->originY = 0.0f; meca500_assy[3]->originZ = 135.0f;
-    }
-    if (meca500_assy[4]) {
-        meca500_assy[4]->originX = 173.0f; meca500_assy[4]->originY = 0.0f; meca500_assy[4]->originZ = 50.0f;
-    }
-    if (meca500_assy[5]) {
-        meca500_assy[5]->originX = 173.0f; meca500_assy[5]->originY = 0.0f; meca500_assy[5]->originZ = 15.0f;
-    }
-    if (meca500_assy[6]) {
-        meca500_assy[6]->originX = 173.0f; meca500_assy[6]->originY = 0.0f; meca500_assy[6]->originZ = -55.0f;
-    }
+    float originX[] = {0.0f, 0.0f, 0.0f, 135.0f, 173.0f, 173.0f, 173.0f};
+    float originY[] = {0.0f, 0.0f, 0.0f, 0.0f,   0.0f,   0.0f,   0.0f};
+    float originZ[] = {0.0f, 135.0f, 135.0f, 135.0f, 50.0f, 15.0f, -55.0f};
 
-    // Set positions (all at 0,0,0)
     for (int i = 0; i < numFiles; i++) {
         if (meca500_assy[i]) {
+            meca500_assy[i]->originX = originX[i];
+            meca500_assy[i]->originY = originY[i];
+            meca500_assy[i]->originZ = originZ[i];
+
+            // Set positions (all at 0,0,0)
             meca500_assy[i]->positionX = 0.0f;
             meca500_assy[i]->positionY = 0.0f;
             meca500_assy[i]->positionZ = 0.0f;
@@ -603,6 +570,12 @@ int main(int argc, char *argv[]) {
     // Add the top-level assembly to the scene
     if (meca500_assy[0]) {
         ucncAssemblyAddAssembly(globalScene, meca500_assy[0]);
+    } else {
+        fprintf(stderr, "No valid top-level assembly found. Exiting.\n");
+        ucncAssemblyFree(globalScene);
+        ucncCameraFree(globalCamera);
+        ZB_close(globalFramebuffer);
+        return EXIT_FAILURE;
     }
 
     // Dynamic Camera Controls: Render multiple frames with camera rotation
@@ -632,42 +605,24 @@ int main(int argc, char *argv[]) {
         globalCamera->targetY = 0.0f;
         globalCamera->targetZ = 0.0f;
 
-        // Apply camera settings
-        ucncCameraApply(globalCamera);
-
         double cameraEnd = getCurrentTimeInMs();
         frameTiming.cameraSetupTime = cameraEnd - cameraStart;
 
         // --- Scene Rendering ---
         double renderStart = getCurrentTimeInMs();
 
-        // Clear the framebuffer for the new frame (Frame Buffer Reuse)
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        // Render the ground
-        CreateGround(500.0f, 500.0f);
-
-        // Render the assembly with multithreading
-        #pragma omp parallel for
-        for (int i = 0; i < globalScene->assemblyCount; i++) {
-            ucncAssemblyRender(globalScene->assemblies[i]);
-        }
-
-        double renderEnd = getCurrentTimeInMs();
-        frameTiming.sceneRenderTime = renderEnd - renderStart;
-
-        // --- Image Saving ---
-        double saveStart = getCurrentTimeInMs();
-
         // Generate a unique filename for each frame
         char outputFilename[256];
         snprintf(outputFilename, sizeof(outputFilename), "meca500_robot_frame_%03d.png", frame + 1);
 
-        // Save the framebuffer as an image
-        saveFramebufferAsImage(globalFramebuffer, outputFilename, framebufferWidth, framebufferHeight);
+        // Render the scene
+        ucncRenderScene(outputFilename);
 
-        double saveEnd = getCurrentTimeInMs();
-        frameTiming.imageSaveTime = saveEnd - saveStart;
+        double renderEnd = getCurrentTimeInMs();
+        frameTiming.sceneRenderTime = renderEnd - renderStart;
+
+        // Since image saving is done within ucncRenderScene, we can approximate the image save time
+        frameTiming.imageSaveTime = 0.0; // Set to zero or measure separately if needed
 
         // End total frame timing
         double frameEnd = getCurrentTimeInMs();
@@ -677,23 +632,15 @@ int main(int argc, char *argv[]) {
         updateProfilingStats(&profilingStats, &frameTiming);
 
         // Output profiling information for the current frame
-        printf("Frame %03d: %s | Camera Setup: %.2f ms | Scene Render: %.2f ms | Image Save: %.2f ms | Total: %.2f ms\n",
+        printf("Frame %03d: %s | Camera Setup: %.2f ms | Scene Render: %.2f ms | Total: %.2f ms\n",
                frame + 1, outputFilename,
                frameTiming.cameraSetupTime,
                frameTiming.sceneRenderTime,
-               frameTiming.imageSaveTime,
                frameTiming.totalFrameTime);
     }
 
     // Print profiling summary
     printProfilingStats(&profilingStats, totalFrames);
-
-    // Optional: Add post-processing or additional effects after rendering all frames
-    // Example: Render text overlays or annotations
-    /*
-    glColor3f(1.0f, 1.0f, 1.0f); // White color for text
-    glDrawText("Rendering Complete", 10, framebufferHeight - 20, 0xFFFFFFFF);
-    */
 
     // Cleanup
     ucncAssemblyFree(globalScene);
