@@ -44,12 +44,24 @@ typedef struct ucncCamera {
     float zoomLevel;
 } ucncCamera;
 
+// --- Light Structure ---
+typedef struct ucncLight {
+    GLenum lightId;                          // OpenGL light ID (e.g., GL_LIGHT0)
+    float position[4];                       // Light position (x, y, z, w)
+    float ambient[4];                        // Ambient color
+    float diffuse[4];                        // Diffuse color
+    float specular[4];                       // Specular color
+} ucncLight;
+
 // Global Scene State
 ucncAssembly *globalScene = NULL;
 ucncCamera *globalCamera = NULL;
 ZBuffer *globalFramebuffer = NULL;
 int framebufferWidth = 800;
 int framebufferHeight = 600;
+
+// Global Light
+ucncLight *globalLight = NULL;
 
 // --- Performance Profiling Structure ---
 typedef struct {
@@ -317,6 +329,54 @@ void ucncCameraApply(ucncCamera *camera) {
     setCamera(camera);
 }
 
+
+// --- Light Functions ---
+
+void addLight(ucncLight *light) {
+    if (!light) return;
+
+    // Enable lighting and the specific light
+    glEnable(GL_LIGHTING);
+    glEnable(light->lightId);
+
+    // Set light parameters
+    glLightfv(light->lightId, GL_POSITION, light->position);
+    glLightfv(light->lightId, GL_AMBIENT, light->ambient);
+    glLightfv(light->lightId, GL_DIFFUSE, light->diffuse);
+    glLightfv(light->lightId, GL_SPECULAR, light->specular);
+}
+
+void setLight(ucncLight *light) {
+    if (!light) return;
+
+    // Update light parameters
+    glLightfv(light->lightId, GL_POSITION, light->position);
+    glLightfv(light->lightId, GL_AMBIENT, light->ambient);
+    glLightfv(light->lightId, GL_DIFFUSE, light->diffuse);
+    glLightfv(light->lightId, GL_SPECULAR, light->specular);
+}
+
+// Function to create a new light
+ucncLight* ucncLightNew(GLenum lightId, float posX, float posY, float posZ, float ambient[], float diffuse[], float specular[]) {
+    ucncLight *light = malloc(sizeof(ucncLight));
+    if (!light) {
+        fprintf(stderr, "Memory allocation failed for ucncLight.\n");
+        return NULL;
+    }
+    light->lightId = lightId;
+    light->position[0] = posX;
+    light->position[1] = posY;
+    light->position[2] = posZ;
+    light->position[3] = 1.0f; // Positional light (w = 1)
+
+    // Copy the color arrays
+    memcpy(light->ambient, ambient, 4 * sizeof(float));
+    memcpy(light->diffuse, diffuse, 4 * sizeof(float));
+    memcpy(light->specular, specular, 4 * sizeof(float));
+
+    return light;
+}
+
 // --- Ground Plane Function ---
 void CreateGround(float sizeX, float sizeY) {
     glPushMatrix();
@@ -336,7 +396,6 @@ void CreateGround(float sizeX, float sizeY) {
     glPopMatrix();
 }
 
-// --- Rendering Scene Function ---
 void ucncRenderScene(const char *outputFilename) {
     if (!globalFramebuffer || !globalCamera || !globalScene) {
         fprintf(stderr, "Render scene failed: Missing framebuffer, camera, or scene.\n");
@@ -344,7 +403,12 @@ void ucncRenderScene(const char *outputFilename) {
     }
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glLoadIdentity(); // Reset the modelview matrix
+
     ucncCameraApply(globalCamera);
+
+    // Set up lighting
+    addLight(globalLight);
 
     // Render the ground
     CreateGround(500.0f, 500.0f);
@@ -503,6 +567,9 @@ int main(int argc, char *argv[]) {
     glEnable(GL_DEPTH_TEST);
     glClearColor(0.7f, 0.9f, 1.0f, 1.0f);  // Set background color
 
+    // Enable lighting
+    glEnable(GL_LIGHTING);
+
     // Create camera and global scene
     globalCamera = ucncCameraNew(radius, 0.0f, elevation, 0.0f, 0.0f, 0.0f);
     if (!globalCamera) {
@@ -511,6 +578,19 @@ int main(int argc, char *argv[]) {
     }
     globalScene = ucncAssemblyNew();
     if (!globalScene) {
+        ucncCameraFree(globalCamera);
+        ZB_close(globalFramebuffer);
+        return EXIT_FAILURE;
+    }
+
+    // Create a light source
+    float ambientLight[] = {0.2f, 0.2f, 0.2f, 1.0f};
+    float diffuseLight[] = {0.7f, 0.7f, 0.7f, 1.0f};
+    float specularLight[] = {1.0f, 1.0f, 1.0f, 1.0f};
+    globalLight = ucncLightNew(GL_LIGHT0, 500.0f, 500.0f, 1000.0f, ambientLight, diffuseLight, specularLight);
+    if (!globalLight) {
+        fprintf(stderr, "Failed to create light.\n");
+        ucncAssemblyFree(globalScene);
         ucncCameraFree(globalCamera);
         ZB_close(globalFramebuffer);
         return EXIT_FAILURE;
@@ -645,6 +725,7 @@ int main(int argc, char *argv[]) {
     // Cleanup
     ucncAssemblyFree(globalScene);
     ucncCameraFree(globalCamera);
+    free(globalLight); // Free the light
     glClose();
     ZB_close(globalFramebuffer);
 
