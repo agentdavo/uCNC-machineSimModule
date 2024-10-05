@@ -1,4 +1,3 @@
-```markdown
 # CNC Machine Rendering Framework
 
 A high-performance CNC machine rendering framework for robot arms, implemented in C using GNU99 and the enhanced TinyGL by Fabrice Bellard. This framework enables you to load STL models, assemble them hierarchically, and render high-quality images with dynamic camera controls and comprehensive performance profiling.
@@ -36,7 +35,7 @@ A high-performance CNC machine rendering framework for robot arms, implemented i
 1. **Clone the Repository:**
    ```bash
    git clone https://github.com/agentdavo/uCNC-machineSimModule.git
-   cd cnc-rendering-framework
+   cd uCNC-machineSimModule
    ```
 
 2. **Install Dependencies:**
@@ -51,16 +50,20 @@ A high-performance CNC machine rendering framework for robot arms, implemented i
 
 3. **Compile TinyGL:**
    ```bash
-   cd path/to/TinyGL/src
-   gcc -O3 -fopenmp -c *.c
+   cd tinygl/src
+   gcc -O3 -c *.c 
    ar rcs libTinyGL.a *.o
    cp libTinyGL.a ../lib
+   cd ..
+   cd SDL_Examples/
+   gcc -O3 menu.c -o menu -lSDL ../lib/libTinyGL.a -lm
+   gcc -O3 gears.c -o gears -lSDL ../lib/libTinyGL.a -lm
    ```
 
 4. **Compile the CNC Rendering Framework:**
    ```bash
    cd ../../
-   gcc -O3 -fopenmp -o render_robot render_robot.c -L./lib -lTinyGL -lm
+   gcc -O3 -o render_robot render_robot.c -L./lib -lTinyGL -lm
    ```
    - `-O3`: Enables high-level optimizations.
    - `-fopenmp`: Enables OpenMP for multithreading support.
@@ -185,7 +188,7 @@ This project is licensed under the [MIT License](LICENSE).
 ## 📚 Additional Resources
 
 - **TinyGL Documentation:**  
-  Refer to the [TinyGL README](https://github.com/C-Chads) for more detailed information on TinyGL's features and usage.
+  Refer to the [TinyGL README](https://github.com/C-Chads/tinygl) for more detailed information on TinyGL's features and usage.
 
 - **libstlio Documentation:**  
   Visit the [libstlio repository](https://github.com/Linden/libstlio) for detailed instructions on handling STL files.
@@ -265,7 +268,7 @@ int main(int argc, char *argv[]) {
 ## 🤝 Acknowledgments
 
 - **[Fabrice Bellard](https://bellard.org/):** Creator of the original TinyGL.
-- **[C-Chads](https://github.com/C-Chads):** Maintainers of the enhanced TinyGL fork with additional features and optimizations.
+- **[C-Chads](https://github.com/C-Chads/tinygl):** Maintainers of the enhanced TinyGL fork with additional features and optimizations.
 - **[stb Libraries](https://github.com/nothings/stb):** For providing `stb_image_write.h`.
 - **[libstlio](https://github.com/Linden/libstlio):** For facilitating STL file handling.
 
