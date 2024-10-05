@@ -168,8 +168,16 @@ void ucncActorRender(ucncActor *actor) {
     glRotatef(actor->rotationZ, 0.0f, 0.0f, 1.0f);
     glTranslatef(actor->originX, actor->originY, actor->originZ);
 
-    // Apply color instead of material properties
-    glColor3f(actor->colorR, actor->colorG, actor->colorB);
+    // Set material properties
+    GLfloat matAmbient[] = { actor->colorR * 0.2f, actor->colorG * 0.2f, actor->colorB * 0.2f, 1.0f };
+    GLfloat matDiffuse[] = { actor->colorR, actor->colorG, actor->colorB, 1.0f };
+    GLfloat matSpecular[] = { 0.3f, 0.3f, 0.3f, 1.0f };
+    GLfloat matShininess[] = { 30.0f };
+
+    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, matAmbient);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, matDiffuse);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, matSpecular);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, matShininess);
 
     // Render triangles from the STL data
     glBegin(GL_TRIANGLES);
