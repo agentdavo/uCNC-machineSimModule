@@ -48,6 +48,11 @@ STLIO_LIB = libstlio.a
 # Final Executable
 TARGET = render_robot
 
+# Test Application Source
+TEST_APP = test_app
+TEST_APP_SRC = test_app.c
+TEST_APP_OBJ = $(TEST_APP_SRC:.c=.o)
+
 # =============================================================================
 #                                   TARGETS
 # =============================================================================
@@ -87,6 +92,12 @@ $(MAIN_OBJ): $(MAIN_SRC) $(STB_DIR)/stb_image_write.h
 	@echo "Compiling main application: $<"
 	$(CC) $(CFLAGS) -c $< -o $@
 
+# Build the test application
+$(TEST_APP): $(TEST_APP_OBJ) $(MAIN_OBJS) $(TGL_LIB) $(STLIO_LIB)
+	@echo "Linking $@..."
+	$(CC) $(CFLAGS) -o $@ $(TEST_APP_OBJ) $(MAIN_OBJS) $(TGL_LIB) $(STLIO_LIB) $(LDFLAGS)
+	@echo "Build complete: $@
+
 # Clean build artifacts
 clean:
 	@echo "Cleaning build artifacts..."
@@ -94,7 +105,7 @@ clean:
 	rm -f $(STLIO_DIR)/src/*.o
 	rm -f $(TGL_LIB) $(STLIO_LIB)
 	rm -f $(MAIN_OBJ)
-	rm -f $(TARGET)
+	rm -f $(TARGET) $(TEST_APP)
 	@echo "Clean complete."
 
 # =============================================================================
