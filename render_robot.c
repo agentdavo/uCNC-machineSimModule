@@ -86,6 +86,11 @@ typedef struct {
 
 // --- Utility Function for Saving Framebuffer ---
 void saveFramebufferAsImage(ZBuffer *framebuffer, const char *filename, int width, int height) {
+    if (!framebuffer || !filename) {
+        fprintf(stderr, "Invalid framebuffer or filename in saveFramebufferAsImage.\n");
+        return;
+    }
+
     // TinyGL stores the framebuffer in BGR format, convert it to RGB
     unsigned char *pixels = malloc(width * height * 3);
     if (!pixels) {
@@ -110,6 +115,11 @@ void saveFramebufferAsImage(ZBuffer *framebuffer, const char *filename, int widt
 
 // --- Actor Functions ---
 ucncActor* ucncActorNew(const char *stlFile) {
+    if (!stlFile) {
+        fprintf(stderr, "Invalid STL file name.\n");
+        return NULL;
+    }
+
     ucncActor *actor = malloc(sizeof(ucncActor));
     if (!actor) {
         fprintf(stderr, "Memory allocation failed for ucncActor.\n");
@@ -121,6 +131,9 @@ ucncActor* ucncActorNew(const char *stlFile) {
     actor->colorR = 1.0f;  // Default color: white
     actor->colorG = 1.0f;
     actor->colorB = 1.0f;
+    actor->stlObject = NULL; // Initialize to NULL
+    actor->triangleCount = 0;
+    actor->stride = 0;
 
     // Load STL file using libstlio
     union {
@@ -156,7 +169,7 @@ ucncActor* ucncActorNew(const char *stlFile) {
 }
 
 void ucncActorRender(ucncActor *actor) {
-    if (!actor) return;
+    if (!actor || !actor->stlObject) return;
 
     glPushMatrix();
     glTranslatef(actor->positionX, actor->positionY, actor->positionZ);
@@ -209,28 +222,30 @@ ucncAssembly* ucncAssemblyNew() {
     return assembly;
 }
 
-void ucncAssemblyAddActor(ucncAssembly *assembly, ucncActor *actor) {
-    if (!assembly || !actor) return;
+int ucncAssemblyAddActor(ucncAssembly *assembly, ucncActor *actor) {
+    if (!assembly || !actor) return 0; // Failure
     ucncActor **temp = realloc(assembly->actors, (assembly->actorCount + 1) * sizeof(ucncActor*));
     if (!temp) {
         fprintf(stderr, "Reallocation failed when adding actor to assembly.\n");
-        return;
+        return 0; // Failure
     }
     assembly->actors = temp;
     assembly->actors[assembly->actorCount] = actor;
     assembly->actorCount++;
+    return 1; // Success
 }
 
-void ucncAssemblyAddAssembly(ucncAssembly *parent, ucncAssembly *child) {
-    if (!parent || !child) return;
+int ucncAssemblyAddAssembly(ucncAssembly *parent, ucncAssembly *child) {
+    if (!parent || !child) return 0; // Failure
     ucncAssembly **temp = realloc(parent->assemblies, (parent->assemblyCount + 1) * sizeof(ucncAssembly*));
     if (!temp) {
         fprintf(stderr, "Reallocation failed when adding assembly to parent assembly.\n");
-        return;
+        return 0; // Failure
     }
     parent->assemblies = temp;
     parent->assemblies[parent->assemblyCount] = child;
     parent->assemblyCount++;
+    return 1; // Success
 }
 
 void ucncAssemblyRender(ucncAssembly *assembly) {
@@ -334,7 +349,6 @@ void ucncCameraApply(ucncCamera *camera) {
     setCamera(camera);
 }
 
-
 // --- Light Functions ---
 
 void addLight(ucncLight *light) {
@@ -362,6 +376,11 @@ void setLight(ucncLight *light) {
 
 // Function to create a new light
 ucncLight* ucncLightNew(GLenum lightId, float posX, float posY, float posZ, float ambient[], float diffuse[], float specular[]) {
+    if (!ambient || !diffuse || !specular) {
+        fprintf(stderr, "Invalid light color arrays.\n");
+        return NULL;
+    }
+
     ucncLight *light = malloc(sizeof(ucncLight));
     if (!light) {
         fprintf(stderr, "Memory allocation failed for ucncLight.\n");
@@ -384,10 +403,10 @@ ucncLight* ucncLightNew(GLenum lightId, float posX, float posY, float posZ, floa
 // --- Ground Plane Function ---
 void CreateGround(float sizeX, float sizeY) {
     glPushMatrix();
-    
+
     // Set the color for the ground (light grey)
     glColor3f(0.75f, 0.75f, 0.75f);
-    
+
     // Render a simple plane for the ground
     glBegin(GL_QUADS);
     glNormal3f(0.0f, 0.0f, 1.0f);  // Normal facing up
@@ -396,13 +415,13 @@ void CreateGround(float sizeX, float sizeY) {
     glVertex3f(sizeX, sizeY, 0.0f);    // Top right
     glVertex3f(-sizeX, sizeY, 0.0f);   // Top left
     glEnd();
-    
+
     glPopMatrix();
 }
 
-void ucncRenderScene(const char *outputFilename) {
-    if (!globalFramebuffer || !globalCamera || !globalScene) {
-        fprintf(stderr, "Render scene failed: Missing framebuffer, camera, or scene.\n");
+void ucncRenderScene(const char *outputFilename, FrameTiming *frameTiming, int frameNumber) {
+    if (!globalFramebuffer || !globalCamera || !globalScene || !outputFilename) {
+        fprintf(stderr, "Render scene failed: Missing framebuffer, camera, scene, or output filename.\n");
         return;
     }
 
@@ -419,6 +438,41 @@ void ucncRenderScene(const char *outputFilename) {
 
     // Render the assembly
     ucncAssemblyRender(globalScene);
+
+    // --- Display FPS and Performance Data ---
+
+    // Set up orthographic projection for 2D rendering
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, framebufferWidth, framebufferHeight, 0, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    // Set text size and color
+    glTextSize(GL_TEXT_SIZE8x8);
+    unsigned int color = 0x00FFFFFF; // White color
+
+    // Prepare the text to display
+    char textBuffer[256];
+    snprintf(textBuffer, sizeof(textBuffer),
+             "Frame: %d\nFPS: %.1f\nRender Time: %.2f ms",
+             frameNumber + 1,
+             1000.0 / frameTiming->totalFrameTime,
+             frameTiming->sceneRenderTime);
+
+    // Render the text at desired position
+    int x = 10;    // Position from the left
+    int y = 20;    // Position from the top
+    glDrawText((unsigned char *)textBuffer, x, y, color);
+
+    // Restore matrices
+    glPopMatrix();
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
 
     // Save the framebuffer as an image
     saveFramebufferAsImage(globalFramebuffer, outputFilename, framebufferWidth, framebufferHeight);
@@ -452,11 +506,27 @@ void ucncCameraFree(ucncCamera *camera) {
     }
 }
 
+void ucncLightFree(ucncLight *light) {
+    if (light) {
+        free(light);
+    }
+}
+
 // --- Function to Get Current Time in Milliseconds ---
 double getCurrentTimeInMs() {
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (double)(ts.tv_sec) * 1000.0 + (double)(ts.tv_nsec) / 1e6;
+    #ifdef _WIN32
+        // Windows implementation
+        LARGE_INTEGER frequency;
+        LARGE_INTEGER currentTime;
+        QueryPerformanceFrequency(&frequency);
+        QueryPerformanceCounter(&currentTime);
+        return (double)(currentTime.QuadPart * 1000) / frequency.QuadPart;
+    #else
+        // POSIX implementation
+        struct timeval time;
+        gettimeofday(&time, NULL);
+        return (double)(time.tv_sec) * 1000.0 + (double)(time.tv_usec) / 1000.0;
+    #endif
 }
 
 // --- Function to Initialize Profiling Statistics ---
@@ -538,10 +608,10 @@ void printProfilingStats(ProfilingStats *stats, int totalFrames) {
 // --- Main Program ---
 int main(int argc, char *argv[]) {
     // Parameters for dynamic camera controls
-    int totalFrames = 36;          // Number of frames for a full 360-degree rotation
-    float rotationSpeed = 10.0f;   // Degrees to rotate per frame
-    float radius = 400.0f;         // Distance from the origin
-    float elevation = 100.0f;      // Height of the camera
+    int totalFrames = 720;           // Number of frames for a full 360-degree rotation
+    float rotationSpeed = 1.0f;      // Degrees to rotate per frame
+    float radius = 1000.0f;          // Distance from the origin
+    float elevation = 25.0f;         // Height of the camera
 
     // Override parameters with command-line arguments if provided
     if (argc >= 2) {
@@ -577,11 +647,13 @@ int main(int argc, char *argv[]) {
     // Create camera and global scene
     globalCamera = ucncCameraNew(radius, 0.0f, elevation, 0.0f, 0.0f, 0.0f);
     if (!globalCamera) {
+        fprintf(stderr, "Failed to create camera.\n");
         ZB_close(globalFramebuffer);
         return EXIT_FAILURE;
     }
     globalScene = ucncAssemblyNew();
     if (!globalScene) {
+        fprintf(stderr, "Failed to create global scene.\n");
         ucncCameraFree(globalCamera);
         ZB_close(globalFramebuffer);
         return EXIT_FAILURE;
@@ -613,6 +685,7 @@ int main(int argc, char *argv[]) {
     const int numFiles = sizeof(filenames) / sizeof(filenames[0]);
 
     ucncAssembly *meca500_assy[numFiles];
+    memset(meca500_assy, 0, sizeof(meca500_assy)); // Initialize to NULL
 
     // Enumerate files and create assemblies in the exact hierarchy
     for (int i = 0; i < numFiles; i++) {
@@ -620,12 +693,24 @@ int main(int argc, char *argv[]) {
         if (actor != NULL) {
             meca500_assy[i] = ucncAssemblyNew();
             if (!meca500_assy[i]) {
+                fprintf(stderr, "Failed to create assembly for %s.\n", filenames[i]);
                 ucncActorFree(actor);
                 continue;
             }
-            ucncAssemblyAddActor(meca500_assy[i], actor);
+            if (!ucncAssemblyAddActor(meca500_assy[i], actor)) {
+                fprintf(stderr, "Failed to add actor to assembly for %s.\n", filenames[i]);
+                ucncActorFree(actor);
+                ucncAssemblyFree(meca500_assy[i]);
+                meca500_assy[i] = NULL;
+                continue;
+            }
             if (i > 0 && meca500_assy[i-1]) {
-                ucncAssemblyAddAssembly(meca500_assy[i-1], meca500_assy[i]);  // Connect assemblies hierarchically
+                if (!ucncAssemblyAddAssembly(meca500_assy[i-1], meca500_assy[i])) {
+                    fprintf(stderr, "Failed to add assembly %d to parent assembly.\n", i);
+                    ucncAssemblyFree(meca500_assy[i]);
+                    meca500_assy[i] = NULL;
+                    continue;
+                }
             }
         } else {
             meca500_assy[i] = NULL;
@@ -653,9 +738,27 @@ int main(int argc, char *argv[]) {
 
     // Add the top-level assembly to the scene
     if (meca500_assy[0]) {
-        ucncAssemblyAddAssembly(globalScene, meca500_assy[0]);
+        if (!ucncAssemblyAddAssembly(globalScene, meca500_assy[0])) {
+            fprintf(stderr, "Failed to add top-level assembly to global scene.\n");
+            for (int i = 0; i < numFiles; i++) {
+                if (meca500_assy[i]) {
+                    ucncAssemblyFree(meca500_assy[i]);
+                }
+            }
+            ucncLightFree(globalLight);
+            ucncAssemblyFree(globalScene);
+            ucncCameraFree(globalCamera);
+            ZB_close(globalFramebuffer);
+            return EXIT_FAILURE;
+        }
     } else {
         fprintf(stderr, "No valid top-level assembly found. Exiting.\n");
+        for (int i = 0; i < numFiles; i++) {
+            if (meca500_assy[i]) {
+                ucncAssemblyFree(meca500_assy[i]);
+            }
+        }
+        ucncLightFree(globalLight);
         ucncAssemblyFree(globalScene);
         ucncCameraFree(globalCamera);
         ZB_close(globalFramebuffer);
@@ -700,7 +803,7 @@ int main(int argc, char *argv[]) {
         snprintf(outputFilename, sizeof(outputFilename), "meca500_robot_frame_%03d.png", frame + 1);
 
         // Render the scene
-        ucncRenderScene(outputFilename);
+        ucncRenderScene(outputFilename, &frameTiming, frame);
 
         double renderEnd = getCurrentTimeInMs();
         frameTiming.sceneRenderTime = renderEnd - renderStart;
@@ -727,9 +830,13 @@ int main(int argc, char *argv[]) {
     printProfilingStats(&profilingStats, totalFrames);
 
     // Cleanup
+    // Free assemblies and actors
     ucncAssemblyFree(globalScene);
+    // Free camera
     ucncCameraFree(globalCamera);
-    free(globalLight); // Free the light
+    // Free light
+    ucncLightFree(globalLight);
+    // Close TinyGL context
     glClose();
     ZB_close(globalFramebuffer);
 
