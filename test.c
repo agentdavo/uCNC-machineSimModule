@@ -14,23 +14,27 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    // Set initial positions or rotations for axes
-    float rotation[3];
+    // Set initial rotations for axes
 
-    // Rotate Joint 1 (J1) by 45 degrees around Z-axis
-    rotation[0] = 0.0f;
-    rotation[1] = 0.0f;
-    rotation[2] = 45.0f;
-    ucncSetAxisRotation("J1", rotation);
+    // Rotate Joint 1 (J1) by 20 degrees
+    if (!ucncSetAxisRotation("J1", 20.0f)) {
+        fprintf(stderr, "Failed to set rotation for axis J1.\n");
+    }
 
-    // Rotate Joint 2 (J2) by -30 degrees around Y-axis
-    rotation[0] = 0.0f;
-    rotation[1] = -30.0f;
-    rotation[2] = 0.0f;
-    ucncSetAxisRotation("J2", rotation);
+    // Rotate Joint 2 (J2) by -20 degrees
+    if (!ucncSetAxisRotation("J2", -30.0f)) {
+        fprintf(stderr, "Failed to set rotation for axis J2.\n");
+    }
 
-    // Render the scene
+    // Rotate Joint 4 (J4) by 20 degrees
+    if (!ucncSetAxisTranslation("J4", 20.0f)) {
+        fprintf(stderr, "Failed to set rotaton for axis J4.\n");
+    }
+
+    // Render the scene to an image
     ucncRender("meca500_rotated.png");
+
+    printf("Rendered image saved as 'meca500_rotated.png
 
     // Shutdown the rendering system
     ucncShutdown();

@@ -104,47 +104,139 @@ static ucncActor* findActorByAxisName(ucncActor *actor, const char *axisName) {
     return NULL;
 }
 
-// Set the rotation of an axis by axis name
-int ucncSetAxisRotation(const char *axisName, float rotation[3]) {
+// Set the rotation of an axis by axis name and movement axis
+int ucncSetAxisRotation(const char *axisName, float angle) {
     ucncActor *actor = findActorByAxisName(globalMachine, axisName);
     if (!actor) {
         fprintf(stderr, "Axis '%s' not found.\n", axisName);
         return 0;
     }
-    memcpy(actor->rotation, rotation, sizeof(float) * 3);
+
+    if (actor->movementType == NULL || actor->movementAxis == NULL) {
+        fprintf(stderr, "Axis '%s' does not have movement type or axis defined.\n", axisName);
+        return 0;
+    }
+
+    if (strcmp(actor->movementType, "rotation") != 0) {
+        fprintf(stderr, "Axis '%s' is not a rotation axis.\n", axisName);
+        return 0;
+    }
+
+    // Determine which rotation axis to modify based on movementAxis
+    if (strcmp(actor->movementAxis, "X") == 0) {
+        actor->rotation[0] = angle;
+    } else if (strcmp(actor->movementAxis, "Y") == 0) {
+        actor->rotation[1] = angle;
+    } else if (strcmp(actor->movementAxis, "Z") == 0) {
+        actor->rotation[2] = angle;
+    } else {
+        fprintf(stderr, "Invalid movement axis '%s' for rotation.\n", actor->movementAxis);
+        return 0;
+    }
+
     return 1;
 }
 
 // Get the rotation of an axis by axis name
-int ucncGetAxisRotation(const char *axisName, float rotation[3]) {
+int ucncGetAxisRotation(const char *axisName, float *angle) {
+    if (!angle) return 0;
+
     ucncActor *actor = findActorByAxisName(globalMachine, axisName);
     if (!actor) {
         fprintf(stderr, "Axis '%s' not found.\n", axisName);
         return 0;
     }
-    memcpy(rotation, actor->rotation, sizeof(float) * 3);
+
+    if (actor->movementType == NULL || actor->movementAxis == NULL) {
+        fprintf(stderr, "Axis '%s' does not have movement type or axis defined.\n", axisName);
+        return 0;
+    }
+
+    if (strcmp(actor->movementType, "rotation") != 0) {
+        fprintf(stderr, "Axis '%s' is not a rotation axis.\n", axisName);
+        return 0;
+    }
+
+    // Retrieve the rotation angle based on movementAxis
+    if (strcmp(actor->movementAxis, "X") == 0) {
+        *angle = actor->rotation[0];
+    } else if (strcmp(actor->movementAxis, "Y") == 0) {
+        *angle = actor->rotation[1];
+    } else if (strcmp(actor->movementAxis, "Z") == 0) {
+        *angle = actor->rotation[2];
+    } else {
+        fprintf(stderr, "Invalid movement axis '%s' for rotation.\n", actor->movementAxis);
+        return 0;
+    }
+
     return 1;
 }
 
-// Set the position of an axis by axis name
-int ucncSetAxisPosition(const char *axisName, float position[3]) {
+// Set the translation of an axis by axis name and movement axis
+int ucncSetAxisTranslation(const char *axisName, float distance) {
     ucncActor *actor = findActorByAxisName(globalMachine, axisName);
     if (!actor) {
         fprintf(stderr, "Axis '%s' not found.\n", axisName);
         return 0;
     }
-    memcpy(actor->position, position, sizeof(float) * 3);
+
+    if (actor->movementType == NULL || actor->movementAxis == NULL) {
+        fprintf(stderr, "Axis '%s' does not have movement type or axis defined.\n", axisName);
+        return 0;
+    }
+
+    if (strcmp(actor->movementType, "translation") != 0) {
+        fprintf(stderr, "Axis '%s' is not a translation axis.\n", axisName);
+        return 0;
+    }
+
+    // Determine which position axis to modify based on movementAxis
+    if (strcmp(actor->movementAxis, "X") == 0) {
+        actor->position[0] = distance;
+    } else if (strcmp(actor->movementAxis, "Y") == 0) {
+        actor->position[1] = distance;
+    } else if (strcmp(actor->movementAxis, "Z") == 0) {
+        actor->position[2] = distance;
+    } else {
+        fprintf(stderr, "Invalid movement axis '%s' for translation.\n", actor->movementAxis);
+        return 0;
+    }
+
     return 1;
 }
 
-// Get the position of an axis by axis name
-int ucncGetAxisPosition(const char *axisName, float position[3]) {
+// Get the translation of an axis by axis name
+int ucncGetAxisTranslation(const char *axisName, float *distance) {
+    if (!distance) return 0;
+
     ucncActor *actor = findActorByAxisName(globalMachine, axisName);
     if (!actor) {
         fprintf(stderr, "Axis '%s' not found.\n", axisName);
         return 0;
     }
-    memcpy(position, actor->position, sizeof(float) * 3);
+
+    if (actor->movementType == NULL || actor->movementAxis == NULL) {
+        fprintf(stderr, "Axis '%s' does not have movement type or axis defined.\n", axisName);
+        return 0;
+    }
+
+    if (strcmp(actor->movementType, "translation") != 0) {
+        fprintf(stderr, "Axis '%s' is not a translation axis.\n", axisName);
+        return 0;
+    }
+
+    // Retrieve the translation distance based on movementAxis
+    if (strcmp(actor->movementAxis, "X") == 0) {
+        *distance = actor->position[0];
+    } else if (strcmp(actor->movementAxis, "Y") == 0) {
+        *distance = actor->position[1];
+    } else if (strcmp(actor->movementAxis, "Z") == 0) {
+        *distance = actor->position[2];
+    } else {
+        fprintf(stderr, "Invalid movement axis '%s' for translation.\n", actor->movementAxis);
+        return 0;
+    }
+
     return 1;
 }
 

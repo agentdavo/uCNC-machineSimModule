@@ -23,6 +23,8 @@ typedef struct ucncActor {
     int childCount;
     int isAxis;                        // Flag indicating if this actor represents an axis (1 = yes, 0 = no)
     char *axisName;                    // Name of the axis (e.g., "X", "Y", "Z1")
+    char *movementType;                // "rotation" or "translation"
+    char *movementAxis;                // "X", "Y", "Z"
 } ucncActor;
 
 ucncActor* ucncActorCreate();

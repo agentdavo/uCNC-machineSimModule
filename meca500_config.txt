@@ -1,9 +1,9 @@
 # Meca500 Configuration
-# Name	Parent	STLFile	OriginX	OriginY	OriginZ	PosX	PosY	PosZ	RotX	RotY	RotZ	ColorR	ColorG	ColorB	IsAxis	AxisName
-Base	NULL	meca500_base.stl	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	1.0	1.0	1.0	0	NULL
-Link1	Base	link1.stl	0.0	0.0	135.0	0.0	0.0	0.0	0.0	0.0	0.0	0.9	0.9	0.9	1	J1
-Link2	Link1	link2.stl	0.0	0.0	135.0	0.0	0.0	0.0	0.0	0.0	0.0	0.8	0.8	0.8	1	J2
-Link3	Link2	link3.stl	135.0	0.0	135.0	0.0	0.0	0.0	0.0	0.0	0.0	0.7	0.7	0.7	1	J3
-Link4	Link3	link4.stl	173.0	0.0	50.0	0.0	0.0	0.0	0.0	0.0	0.0	0.6	0.6	0.6	1	J4
-Link5	Link4	link5.stl	173.0	0.0	15.0	0.0	0.0	0.0	0.0	0.0	0.0	0.5	0.5	0.5	1	J5
-SpindleAssy	Link5	spindle_assy.stl	173.0	0.0	-55.0	0.0	0.0	0.0	0.0	0.0	0.0	0.4	0.4	0.4	1	J6
+# Name	Parent	STLFile	OriginX	OriginY	OriginZ	PosX	PosY	PosZ	RotX	RotY	RotZ	ColorHex	IsAxis	AxisName	MovementType	MovementAxis
+Base	NULL	base.stl	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	#FFFFFF	0	NULL	NULL	NULL
+Link1	Base	link1.stl	0.0	0.0	135.0	0.0	0.0	0.0	0.0	0.0	0.0	#E6E6E6	1	J1	rotation	Z
+Link2	Link1	link2.stl	0.0	0.0	135.0	0.0	0.0	0.0	0.0	0.0	0.0	#CCCCCC	1	J2	rotation	Y
+Link3	Link2	link3.stl	135.0	0.0	135.0	0.0	0.0	0.0	0.0	0.0	0.0	#B3B3B3	1	J3	rotation	X
+Link4	Link3	link4.stl	173.0	0.0	50.0	0.0	0.0	0.0	0.0	0.0	0.0	#999999	1	J4	rotation	Y
+Link5	Link4	link5.stl	173.0	0.0	15.0	0.0	0.0	0.0	0.0	0.0	0.0	#808080	1	J5	rotation	Z
+Link6	Link5	link6.stl	173.0	0.0	-55.0	0.0	0.0	0.0	0.0	0.0	0.0	#666666	1	J6	rotation	Z
