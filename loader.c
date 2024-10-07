@@ -130,17 +130,14 @@ ucncActor* ucncLoadMachine(const char *configFilePath) {
         actor->isAxis = atoi(tokens[13]);
         if (actor->isAxis) {
             actor->axisName = strdup(tokens[14]);
+            // Read MovementType and Invert
+            strncpy(actor->movementType, tokens[15], 2);
+            actor->movementType[2] = '\0'; // Ensure null-termination
+            actor->invert = atoi(tokens[16]);
         } else {
             actor->axisName = NULL;
-        }
-
-        // Read MovementType and MovementAxis
-        if (actor->isAxis) {
-            actor->movementType = strdup(tokens[15]);   // e.g., "rotation" or "translation"
-            actor->movementAxis = strdup(tokens[16]);   // e.g., "X", "Y", "Z"
-        } else {
-            actor->movementType = NULL;
-            actor->movementAxis = NULL;
+            actor->movementType[0] = '\0';
+            actor->invert = 0;
         }
 
         // Load STL file

@@ -22,14 +22,13 @@ typedef struct ucncActor {
     struct ucncActor **children;       // Array of child actors
     int childCount;
     int isAxis;                        // Flag indicating if this actor represents an axis (1 = yes, 0 = no)
-    char *axisName;                    // Name of the axis (e.g., "X", "Y", "Z1")
-    char *movementType;                // "rotation" or "translation"
-    char *movementAxis;                // "X", "Y", "Z"
+    char *axisName;                    // Name of the axis (e.g., "J1", "X", "Z1")
+    char movementType[3];              // Movement type (e.g., "TX", "RZ")
+    int invert;                        // Invert movement direction (1 = yes, 0 = no)
 } ucncActor;
 
 ucncActor* ucncActorCreate();
 void ucncActorFree(ucncActor *actor);
 void ucncActorRender(ucncActor *actor);
 int ucncActorLoadSTL(ucncActor *actor);
-
 #endif // ACTOR_H
