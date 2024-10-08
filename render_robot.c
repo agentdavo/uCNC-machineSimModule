@@ -18,8 +18,8 @@
 #include "stb/stb_image.h"
 #include "stb/stb_image_write.h"
 
-// #define CHAD_MATH_IMPL
-// #include "3dMath.h"
+#define CHAD_MATH_IMPL
+#include "3dMath.h"
 
 #define CHAD_API_IMPL
 #include "tinygl/include/zbuffer.h"
