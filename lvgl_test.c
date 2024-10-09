@@ -82,7 +82,7 @@ int main(int argc, char **argv)
     lv_init();
 
     /*Initialize the HAL (display, input devices, tick) for LVGL*/
-    hal_init(320, 480);
+    hal_init(CANVAS_WIDTH, CANVAS_HEIGHT);
 
     canvas = lv_canvas_create(lv_scr_act(), NULL);
     lv_canvas_set_buffer(canvas, cbuf, CANVAS_WIDTH, CANVAS_HEIGHT, LV_IMG_CF_TRUE_COLOR);
@@ -97,9 +97,9 @@ int main(int argc, char **argv)
       usleep(5 * 1000);
     }
 
-    // do something
+    // do something uCNC
 
-    lv_task_create(anim, 30, LV_TASK_PRIO_LOW, NULL);
+    lv_task_create(uCNC_animatate, 30, LV_TASK_PRIO_LOW, NULL);
 
     return 0;
 }
@@ -115,7 +115,7 @@ void show_uCNC_update (void)
     glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity ();
 
-   // do something
+   // do something with uCNC zbuffer
 
    // glutSwapBuffers ();
 }
@@ -127,7 +127,7 @@ void show_uCNC_init (int w, int h)
     glClearColor(0.0, 0.0, 0.0, 0.0);
     glViewport(0, 0, w, h);
 
-    // do something
+    // do something with uCNC zbuffer
 }
 
 /**********************
@@ -150,11 +150,11 @@ static lv_display_t * hal_init(int32_t w, int32_t h)
   lv_indev_set_display(mouse, disp);
   lv_display_set_default(disp);
 
-  LV_IMAGE_DECLARE(mouse_cursor_icon); /*Declare the image file.*/
+  LV_IMAGE_DECLARE(mouse_cursor_icon);                      /*Declare the image file.*/
   lv_obj_t * cursor_obj;
-  cursor_obj = lv_image_create(lv_screen_active()); /*Create an image object for the cursor */
-  lv_image_set_src(cursor_obj, &mouse_cursor_icon);           /*Set the image source*/
-  lv_indev_set_cursor(mouse, cursor_obj);             /*Connect the image  object to the driver*/
+  cursor_obj = lv_image_create(lv_screen_active());         /*Create an image object for the cursor */
+  lv_image_set_src(cursor_obj, &mouse_cursor_icon);         /*Set the image source*/
+  lv_indev_set_cursor(mouse, cursor_obj);                   /*Connect the image  object to the driver*/
 
   lv_indev_t * mousewheel = lv_sdl_mousewheel_create();
   lv_indev_set_display(mousewheel, disp);
