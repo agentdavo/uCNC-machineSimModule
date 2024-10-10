@@ -1,0 +1,15 @@
+EXESUFFIX=.exe
+OBJSUFFIX=.o
+SLIBSUFFIX=.a
+DYNLIBSUFFIX=.dll
+
+CC=gcc -Wall -pedantic -ansi -std=c99
+CCLIB=gcc -Wall -pedantic -ansi -std=c99
+CP=copy
+MKDIR=md
+ARCMD=ar rcs
+SHAREDCC=gcc -Wall -shared
+MAKE=make
+MKSTAGEARCHIVE=jar -cMf packages/libstlio-x86-win32.zip -C stage .
+RMDIR=rd /s /q
+RMFILE=del /q
