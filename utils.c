@@ -265,18 +265,23 @@ void renderScene(const char *outputFilename, FrameTiming *frameTiming, int frame
     glTextSize(GL_TEXT_SIZE16x16); // Assuming glTextSize is defined elsewhere
     unsigned int color = 0x00FFFFFF; // White color
 
-    // Prepare the text to display
-    char textBuffer[256];
-    snprintf(textBuffer, sizeof(textBuffer),
-             "Frame: %d | FPS: %.1f | Render Time: %.2f ms",
-             frameNumber + 1,
-             1000.0 / frameTiming->totalFrameTime,
-             frameTiming->sceneRenderTime);
+    // Prepare the text to display, line by line
+    char textBuffer1[128];
+    char textBuffer2[128];
+    char textBuffer3[128];
 
-    // Render the text at desired position
-    int x = 10;    // Position from the left
-    int y = 20;    // Position from the top
-    glDrawText((unsigned char *)textBuffer, x, y, color); // Assuming glDrawText is defined
+    // Fill the buffers with relevant text
+    snprintf(textBuffer1, sizeof(textBuffer1), "FRM: %d", frameNumber + 1);
+    snprintf(textBuffer2, sizeof(textBuffer2), "FPS: %.1f", 1000.0 / frameTiming->totalFrameTime);
+    snprintf(textBuffer3, sizeof(textBuffer3), "TIM: %.2f ms", frameTiming->sceneRenderTime);
+
+    // Render each line of text at the desired positions
+    int x = 10;  // Position from the left
+    int y = 10;  // Position from the top, increase for each new line
+
+    glDrawText((unsigned char *)textBuffer1, x, y, color);        // First line
+    glDrawText((unsigned char *)textBuffer2, x, y + 20, color);   // Second line, shifted down
+    glDrawText((unsigned char *)textBuffer3, x, y + 40, color);   // Third line, shifted further down
 
     // Restore matrices
     glPopMatrix();
