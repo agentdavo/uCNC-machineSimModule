@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+  <assemblies>
+    <assembly name="meca500" parent="NULL">
+      <origin x="0.0" y="0.0" z="0.0"/>
+      <position x="0.0" y="0.0" z="0.0"/>
+      <rotation x="0.0" y="0.0" z="0.0"/>
+      <color r="1.0" g="1.0" b="1.0"/>
+    </assembly>
+    <assembly name="base" parent="meca500">
+      <origin x="0.0" y="0.0" z="0.0"/>
+      <position x="0.0" y="0.0" z="0.0"/>
+      <rotation x="0.0" y="0.0" z="0.0"/>
+      <color r="0.8" g="0.8" b="0.8"/>
+    </assembly>
+    <assembly name="link1" parent="base">
+      <origin x="0.0" y="0.0" z="135.0"/>
+      <position x="0.0" y="0.0" z="0.0"/>
+      <rotation x="0.0" y="0.0" z="0.0"/>
+      <color r="0.6" g="0.6" b="0.6"/>
+    </assembly>
+    <assembly name="link2" parent="link1">
+      <origin x="0.0" y="0.0" z="135.0"/>
+      <position x="0.0" y="0.0" z="0.0"/>
+      <rotation x="0.0" y="0.0" z="0.0"/>
+      <color r="0.4" g="0.4" b="0.4"/>
+    </assembly>
+    <assembly name="link3" parent="link2">
+      <origin x="135.0" y="0.0" z="135.0"/>
+      <position x="0.0" y="0.0" z="0.0"/>
+      <rotation x="0.0" y="0.0" z="0.0"/>
+      <color r="0.2" g="0.2" b="0.2"/>
+    </assembly>
+    <assembly name="link4" parent="link3">
+      <origin x="135.0" y="0.0" z="135.0"/>
+      <position x="0.0" y="0.0" z="0.0"/>
+      <rotation x="0.0" y="0.0" z="0.0"/>
+      <color r="0.2" g="0.2" b="0.2"/>
+    </assembly>
+    <assembly name="link5" parent="link4">
+      <origin x="135.0" y="0.0" z="135.0"/>
+      <position x="0.0" y="0.0" z="0.0"/>
+      <rotation x="0.0" y="0.0" z="0.0"/>
+      <color r="0.2" g="0.2" b="0.2"/>
+    </assembly>
+    <assembly name="link6" parent="link5">
+      <origin x="135.0" y="0.0" z="135.0"/>
+      <position x="0.0" y="0.0" z="0.0"/>
+      <rotation x="0.0" y="0.0" z="0.0"/>
+      <color r="0.2" g="0.2" b="0.2"/>
+    </assembly>
+  </assemblies>
+
+  <actors>
+    <actor name="base_part" assembly="base" stlFile="base.stl">
+      <color r="0.8" g="0.8" b="0.8"/>
+    </actor>
+    <actor name="link1_part" assembly="link1" stlFile="link1.stl">
+      <color r="0.6" g="0.6" b="0.6"/>
+    </actor>
+    <actor name="link2_part" assembly="link2" stlFile="link2.stl">
+      <color r="0.4" g="0.4" b="0.4"/>
+    </actor>
+    <actor name="link3_part" assembly="link3" stlFile="link3.stl">
+      <color r="0.4" g="0.4" b="0.4"/>
+    </actor>
+    <actor name="link4_part" assembly="link4" stlFile="link4.stl">
+      <color r="0.4" g="0.4" b="0.4"/>
+    </actor>
+    <actor name="link5_part" assembly="link5" stlFile="link5.stl">
+      <color r="0.4" g="0.4" b="0.4"/>
+    </actor>
+    <actor name="link6_part" assembly="link6" stlFile="link6.stl">
+      <color r="0.4" g="0.4" b="0.4"/>
+    </actor>
+  </actors>
+
+  <lights>
+    <light id="GL_LIGHT0" x="-500.0" y="500.0" z="1000.0">
+      <ambient r="0.1" g="0.1" b="0.1"/>
+      <diffuse r="0.5" g="0.5" b="0.5"/>
+      <specular r="0.8" g="0.8" b="0.8"/>
+    </light>
+  </lights>
+</config>
