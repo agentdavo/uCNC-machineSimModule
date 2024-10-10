@@ -6,48 +6,56 @@
       <position x="0.0" y="0.0" z="0.0"/>
       <rotation x="0.0" y="0.0" z="0.0"/>
       <color r="1.0" g="1.0" b="1.0"/>
+      <motion type="none" invert="no"/>
     </assembly>
     <assembly name="base" parent="meca500">
       <origin x="0.0" y="0.0" z="0.0"/>
       <position x="0.0" y="0.0" z="0.0"/>
       <rotation x="0.0" y="0.0" z="0.0"/>
       <color r="0.8" g="0.8" b="0.8"/>
+      <motion type="rotational" axis="Z" invert="no"/>
     </assembly>
     <assembly name="link1" parent="base">
       <origin x="0.0" y="0.0" z="135.0"/>
       <position x="0.0" y="0.0" z="0.0"/>
       <rotation x="0.0" y="0.0" z="0.0"/>
       <color r="0.6" g="0.6" b="0.6"/>
+      <motion type="rotational" axis="Z" invert="yes"/>
     </assembly>
     <assembly name="link2" parent="link1">
       <origin x="0.0" y="0.0" z="135.0"/>
       <position x="0.0" y="0.0" z="0.0"/>
       <rotation x="0.0" y="0.0" z="0.0"/>
       <color r="0.4" g="0.4" b="0.4"/>
+      <motion type="rotational" axis="Z" invert="no"/>
     </assembly>
     <assembly name="link3" parent="link2">
       <origin x="135.0" y="0.0" z="135.0"/>
       <position x="0.0" y="0.0" z="0.0"/>
       <rotation x="0.0" y="0.0" z="0.0"/>
       <color r="0.2" g="0.2" b="0.2"/>
+      <motion type="rotational" axis="Z" invert="no"/>
     </assembly>
     <assembly name="link4" parent="link3">
       <origin x="135.0" y="0.0" z="135.0"/>
       <position x="0.0" y="0.0" z="0.0"/>
       <rotation x="0.0" y="0.0" z="0.0"/>
       <color r="0.2" g="0.2" b="0.2"/>
+      <motion type="rotational" axis="Z" invert="no"/>
     </assembly>
     <assembly name="link5" parent="link4">
       <origin x="135.0" y="0.0" z="135.0"/>
       <position x="0.0" y="0.0" z="0.0"/>
       <rotation x="0.0" y="0.0" z="0.0"/>
       <color r="0.2" g="0.2" b="0.2"/>
+      <motion type="rotational" axis="Z" invert="yes"/>
     </assembly>
     <assembly name="link6" parent="link5">
       <origin x="135.0" y="0.0" z="135.0"/>
       <position x="0.0" y="0.0" z="0.0"/>
       <rotation x="0.0" y="0.0" z="0.0"/>
       <color r="0.2" g="0.2" b="0.2"/>
+      <motion type="rotational" axis="Z" invert="no"/>
     </assembly>
   </assemblies>
 

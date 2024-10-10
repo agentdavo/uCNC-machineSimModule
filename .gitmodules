@@ -16,3 +16,6 @@
 [submodule "FreeRTOS"]
 	path = FreeRTOS
 	url = https://github.com/FreeRTOS/FreeRTOS-Kernel.git
+[submodule "mxml"]
+	path = mxml
+	url = https://github.com/michaelrsweet/mxml.git

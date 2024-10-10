@@ -11,26 +11,31 @@ CC = gcc
 TGL_DIR = tinygl
 STLIO_DIR = libstlio
 STB_DIR = stb
+MXML_DIR = mxml
 
 # Compiler Flags
 # -O3: Optimize for maximum speed
 # -std=gnu99: Use GNU99 standard
 # -I: Include directories for header files
-CFLAGS = -O3 -std=gnu99 -Wall -g \
+CFLAGS = -O3 -std=gnu99 \
          -I./$(TGL_DIR)/include \
          -I./$(STLIO_DIR)/include \
+         -I./$(MXML_DIR) \
          -I./$(STB_DIR) \
          -I.  # Include current directory for utils.h and other headers
 
 # Linker Flags
-# -lm: Link the math library
-LDFLAGS = -lm -lmxml
+LDFLAGS = -lm
+
+# Static Libraries
+LDLIBS = -lm
 
 # Source Files
 
-# All .c files within TinyGL/src and libstlio/src
+# All .c files
 TGL_SRC = $(wildcard $(TGL_DIR)/src/*.c)
 STLIO_SRC = $(wildcard $(STLIO_DIR)/src/*.c)
+MXML_SRC = $(wildcard $(MXML_DIR)/*.c)
 
 # Main Application Source
 MAIN_SRC = main.c
@@ -42,12 +47,14 @@ ADDITIONAL_SRC = utils.c actor.c assembly.c camera.c light.c config.c
 # Replace .c with .o for object files
 TGL_OBJ = $(TGL_SRC:.c=.o)
 STLIO_OBJ = $(STLIO_SRC:.c=.o)
+MXML_OBJ = $(MXML_SRC:.c=.o)
 MAIN_OBJ = $(MAIN_SRC:.c=.o)
 ADDITIONAL_OBJ = $(ADDITIONAL_SRC:.c=.o)
 
 # Static Libraries
 TGL_LIB = libtinygl.a
 STLIO_LIB = libstlio.a
+MXML_LIB = libmxml.a
 
 # Final Executable
 TARGET = render_robot
@@ -60,9 +67,9 @@ TARGET = render_robot
 all: $(TARGET)
 
 # Link the final executable
-$(TARGET): $(MAIN_OBJ) $(ADDITIONAL_OBJ) $(TGL_LIB) $(STLIO_LIB)
+$(TARGET): $(MAIN_OBJ) $(ADDITIONAL_OBJ) $(TGL_LIB) $(STLIO_LIB) $(MXML_LIB)
 	@echo "Linking $@..."
-	$(CC) $(CFLAGS) -o $@ $(MAIN_OBJ) $(ADDITIONAL_OBJ) $(TGL_LIB) $(STLIO_LIB) $(LDFLAGS)
+	$(CC) $(CFLAGS) -o $@ $(MAIN_OBJ) $(ADDITIONAL_OBJ) $(TGL_LIB) $(STLIO_LIB) $(MXML_LIB) $(LDLIBS)
 	@echo "Build complete: $@"
 
 # Create TinyGL static library
@@ -75,6 +82,11 @@ $(STLIO_LIB): $(STLIO_OBJ)
 	@echo "Creating static library $@..."
 	ar rcs $@ $^
 
+# Create libmxml static library
+$(MXML_LIB): $(MXML_OBJ)
+	@echo "Creating static library $@..."
+	ar rcs $@ $^
+
 # Compile TinyGL source files into object files
 $(TGL_DIR)/src/%.o: $(TGL_DIR)/src/%.c
 	@echo "Compiling TinyGL: $<"
@@ -83,6 +95,11 @@ $(TGL_DIR)/src/%.o: $(TGL_DIR)/src/%.c
 # Compile libstlio source files into object files
 $(STLIO_DIR)/src/%.o: $(STLIO_DIR)/src/%.c
 	@echo "Compiling libstlio: $<"
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Compile libmxml source files into object files
+$(MXML_DIR)/%.o: $(MXML_DIR)/%.c
+	@echo "Compiling libmxml: $<"
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Compile additional application source files into object files
@@ -99,12 +116,12 @@ $(MAIN_OBJ): $(MAIN_SRC) $(STB_DIR)/stb_image_write.h
 # Clean build artifacts
 clean:
 	@echo "Cleaning build artifacts..."
-	rm -f $(TGL_DIR)/src/*.o
-	rm -f $(STLIO_DIR)/src/*.o
-	rm -f $(TGL_LIB) $(STLIO_LIB)
-	rm -f $(MAIN_OBJ)
-	rm -f $(ADDITIONAL_OBJ)
-	rm -f $(TARGET)
+	-rm -f $(TGL_DIR)/src/*.o
+	-rm -f $(STLIO_DIR)/src/*.o
+	-rm -f $(TGL_LIB) $(STLIO_LIB) $(MXML_LIB)
+	-rm -f $(MAIN_OBJ)
+	-rm -f $(ADDITIONAL_OBJ)
+	-rm -f $(TARGET)
 	@echo "Clean complete."
 
 # =============================================================================

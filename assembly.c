@@ -12,13 +12,14 @@ ucncAssembly* ucncAssemblyNew(const char *name, const char *parentName,
                               float originX, float originY, float originZ,
                               float positionX, float positionY, float positionZ,
                               float rotationX, float rotationY, float rotationZ,
-                              float colorR, float colorG, float colorB) {
+                              float colorR, float colorG, float colorB,
+                              const char *motionType, char motionAxis, int invertMotion) {
     ucncAssembly *assembly = malloc(sizeof(ucncAssembly));
     if (!assembly) {
         fprintf(stderr, "Memory allocation failed for ucncAssembly '%s'.\n", name ? name : "unknown");
         return NULL;
     }
-    
+
     // Ensure name is not NULL before using strncpy
     if (name) {
         strncpy(assembly->name, name, sizeof(assembly->name) - 1);
@@ -51,6 +52,19 @@ ucncAssembly* ucncAssemblyNew(const char *name, const char *parentName,
     assembly->colorR = colorR;
     assembly->colorG = colorG;
     assembly->colorB = colorB;
+
+    // Initialize motion fields
+    if (motionType) {
+        strncpy(assembly->motionType, motionType, sizeof(assembly->motionType) - 1);
+        assembly->motionType[sizeof(assembly->motionType) - 1] = '\0';  // Null-terminate
+    } else {
+        strncpy(assembly->motionType, "none", sizeof(assembly->motionType) - 1);
+        assembly->motionType[sizeof(assembly->motionType) - 1] = '\0';  // Default to "none"
+    }
+    assembly->motionAxis = motionAxis;
+    assembly->invertMotion = invertMotion;
+
+    // Initialize actor and assembly lists
     assembly->actors = NULL;
     assembly->actorCount = 0;
     assembly->assemblies = NULL;
@@ -58,6 +72,7 @@ ucncAssembly* ucncAssemblyNew(const char *name, const char *parentName,
 
     return assembly;
 }
+
 
 int ucncAssemblyAddActor(ucncAssembly *assembly, ucncActor *actor) {
     if (!assembly || !actor) {
@@ -70,8 +85,8 @@ int ucncAssemblyAddActor(ucncAssembly *assembly, ucncActor *actor) {
     if (!temp) {
         // If realloc fails, output error message and return failure
         fprintf(stderr, "Reallocation failed when adding actor '%s' to assembly '%s'.\n", 
-                actor->name ? actor->name : "(unknown actor)", 
-                assembly->name ? assembly->name : "(unknown assembly)");
+                actor->name[0] ? actor->name : "(unknown actor)", 
+                assembly->name[0] ? assembly->name : "(unknown assembly)");
         return 0; // Failure
     }
 
@@ -80,8 +95,14 @@ int ucncAssemblyAddActor(ucncAssembly *assembly, ucncActor *actor) {
     assembly->actors[assembly->actorCount] = actor;
     assembly->actorCount++;
 
+    printf("Added actor '%s' to assembly '%s'.\n", 
+           actor->name[0] ? actor->name : "(unknown actor)", 
+           assembly->name[0] ? assembly->name : "(unknown assembly)");
+
     return 1; // Success
 }
+
+
 
 int ucncAssemblyAddAssembly(ucncAssembly *parent, ucncAssembly *child) {
     if (!parent || !child) {

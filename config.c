@@ -1,8 +1,10 @@
 #include "config.h"
-#include <mxml.h>
+#include "actor.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "mxml/mxml.h"
 
 void freeLights(ucncLight **lights, int lightCount) {
     if (!lights) return;
@@ -19,7 +21,8 @@ int loadConfiguration(const char *filename, ucncAssembly **rootAssembly, ucncLig
         return 0;
     }
 
-    mxml_node_t *tree = mxmlLoadFile(NULL, file, MXML_OPAQUE_CALLBACK);
+    // Use MXML_NO_CALLBACK or NULL instead of MXML_OPAQUE
+    mxml_node_t *tree = mxmlLoadFile(NULL, NULL, file);
     fclose(file);
     if (!tree) {
         fprintf(stderr, "Failed to parse XML configuration file.\n");
@@ -33,17 +36,17 @@ int loadConfiguration(const char *filename, ucncAssembly **rootAssembly, ucncLig
     int loadedLightCount = 0;
 
     // Process the assemblies
-    mxml_node_t *assembliesNode = mxmlFindElement(tree, tree, "assemblies", NULL, NULL, MXML_DESCEND);
+    mxml_node_t *assembliesNode = mxmlFindElement(tree, tree, "assemblies", NULL, NULL, MXML_DESCEND_ALL);
     if (assembliesNode) {
-        for (mxml_node_t *assemblyNode = mxmlFindElement(assembliesNode, assembliesNode, "assembly", NULL, NULL, MXML_DESCEND);
+        for (mxml_node_t *assemblyNode = mxmlFindElement(assembliesNode, assembliesNode, "assembly", NULL, NULL, MXML_DESCEND_ALL);
              assemblyNode;
-             assemblyNode = mxmlFindElement(assemblyNode, assembliesNode, "assembly", NULL, NULL, MXML_NO_DESCEND)) {
+             assemblyNode = mxmlFindElement(assemblyNode, assembliesNode, "assembly", NULL, NULL, MXML_DESCEND_NONE)) {
 
             const char *name = mxmlElementGetAttr(assemblyNode, "name");
             const char *parentName = mxmlElementGetAttr(assemblyNode, "parent");
 
             // Origin
-            mxml_node_t *originNode = mxmlFindElement(assemblyNode, assemblyNode, "origin", NULL, NULL, MXML_DESCEND);
+            mxml_node_t *originNode = mxmlFindElement(assemblyNode, assemblyNode, "origin", NULL, NULL, MXML_DESCEND_ALL);
             float originX = 0.0f, originY = 0.0f, originZ = 0.0f;
             if (originNode) {
                 originX = atof(mxmlElementGetAttr(originNode, "x"));
@@ -54,7 +57,7 @@ int loadConfiguration(const char *filename, ucncAssembly **rootAssembly, ucncLig
             }
 
             // Position
-            mxml_node_t *positionNode = mxmlFindElement(assemblyNode, assemblyNode, "position", NULL, NULL, MXML_DESCEND);
+            mxml_node_t *positionNode = mxmlFindElement(assemblyNode, assemblyNode, "position", NULL, NULL, MXML_DESCEND_ALL);
             float positionX = 0.0f, positionY = 0.0f, positionZ = 0.0f;
             if (positionNode) {
                 positionX = atof(mxmlElementGetAttr(positionNode, "x"));
@@ -65,7 +68,7 @@ int loadConfiguration(const char *filename, ucncAssembly **rootAssembly, ucncLig
             }
 
             // Rotation
-            mxml_node_t *rotationNode = mxmlFindElement(assemblyNode, assemblyNode, "rotation", NULL, NULL, MXML_DESCEND);
+            mxml_node_t *rotationNode = mxmlFindElement(assemblyNode, assemblyNode, "rotation", NULL, NULL, MXML_DESCEND_ALL);
             float rotationX = 0.0f, rotationY = 0.0f, rotationZ = 0.0f;
             if (rotationNode) {
                 rotationX = atof(mxmlElementGetAttr(rotationNode, "x"));
@@ -76,7 +79,7 @@ int loadConfiguration(const char *filename, ucncAssembly **rootAssembly, ucncLig
             }
 
             // Color
-            mxml_node_t *colorNode = mxmlFindElement(assemblyNode, assemblyNode, "color", NULL, NULL, MXML_DESCEND);
+            mxml_node_t *colorNode = mxmlFindElement(assemblyNode, assemblyNode, "color", NULL, NULL, MXML_DESCEND_ALL);
             float colorR = 1.0f, colorG = 1.0f, colorB = 1.0f;
             if (colorNode) {
                 colorR = atof(mxmlElementGetAttr(colorNode, "r"));
@@ -86,12 +89,38 @@ int loadConfiguration(const char *filename, ucncAssembly **rootAssembly, ucncLig
                 fprintf(stderr, "Missing color for assembly '%s'. Using default values.\n", name);
             }
 
-            ucncAssembly *assembly = ucncAssemblyNew(name, strcmp(parentName, "NULL") == 0 ? NULL : parentName,
-                                                     originX, originY, originZ, positionX, positionY, positionZ,
-                                                     rotationX, rotationY, rotationZ, colorR, colorG, colorB);
+            // Motion
+            mxml_node_t *motionNode = mxmlFindElement(assemblyNode, assemblyNode, "motion", NULL, NULL, MXML_DESCEND_ALL);
+            char *motionType = NULL;
+            char motionAxis = ' ';
+            int invertMotion = 0;
+
+            if (motionNode) {
+                motionType = strdup(mxmlElementGetAttr(motionNode, "type"));
+                const char *axisStr = mxmlElementGetAttr(motionNode, "axis");
+                motionAxis = axisStr ? axisStr[0] : ' ';  // X, Y, Z axis
+
+                const char *invertStr = mxmlElementGetAttr(motionNode, "invert");
+                invertMotion = (invertStr && strcmp(invertStr, "yes") == 0) ? 1 : 0;
+            } else {
+                motionType = strdup("none");
+                fprintf(stderr, "Motion not specified for assembly '%s'. Using default 'none'.\n", name);
+            }
+
+            ucncAssembly *assembly = ucncAssemblyNew(
+                name,
+                strcmp(parentName, "NULL") == 0 ? NULL : parentName,
+                originX, originY, originZ,
+                positionX, positionY, positionZ,
+                rotationX, rotationY, rotationZ,
+                colorR, colorG, colorB,
+                motionType, motionAxis, invertMotion
+            );
+
+            free(motionType);  // Free strdup'd motionType
 
             if (assembly) {
-                ucncAssembly **temp = realloc(assemblies, (assemblyCount + 1) * sizeof(ucncAssembly*));
+                ucncAssembly **temp = realloc(assemblies, (assemblyCount + 1) * sizeof(ucncAssembly *));
                 if (!temp) {
                     fprintf(stderr, "Reallocation failed for assemblies.\n");
                     ucncAssemblyFree(assembly);
@@ -110,18 +139,18 @@ int loadConfiguration(const char *filename, ucncAssembly **rootAssembly, ucncLig
     }
 
     // Process the actors
-    mxml_node_t *actorsNode = mxmlFindElement(tree, tree, "actors", NULL, NULL, MXML_DESCEND);
+    mxml_node_t *actorsNode = mxmlFindElement(tree, tree, "actors", NULL, NULL, MXML_DESCEND_ALL);
     if (actorsNode) {
-        for (mxml_node_t *actorNode = mxmlFindElement(actorsNode, actorsNode, "actor", NULL, NULL, MXML_DESCEND);
+        for (mxml_node_t *actorNode = mxmlFindElement(actorsNode, actorsNode, "actor", NULL, NULL, MXML_DESCEND_ALL);
              actorNode;
-             actorNode = mxmlFindElement(actorNode, actorsNode, "actor", NULL, NULL, MXML_NO_DESCEND)) {
+             actorNode = mxmlFindElement(actorNode, actorsNode, "actor", NULL, NULL, MXML_DESCEND_NONE)) {
 
             const char *name = mxmlElementGetAttr(actorNode, "name");
             const char *assemblyName = mxmlElementGetAttr(actorNode, "assembly");
             const char *stlFile = mxmlElementGetAttr(actorNode, "stlFile");
 
             // Color
-            mxml_node_t *colorNode = mxmlFindElement(actorNode, actorNode, "color", NULL, NULL, MXML_DESCEND);
+            mxml_node_t *colorNode = mxmlFindElement(actorNode, actorNode, "color", NULL, NULL, MXML_DESCEND_ALL);
             float colorR = 1.0f, colorG = 1.0f, colorB = 1.0f;
             if (colorNode) {
                 colorR = atof(mxmlElementGetAttr(colorNode, "r"));
@@ -159,11 +188,11 @@ int loadConfiguration(const char *filename, ucncAssembly **rootAssembly, ucncLig
     }
 
     // Process the lights
-    mxml_node_t *lightsNode = mxmlFindElement(tree, tree, "lights", NULL, NULL, MXML_DESCEND);
+    mxml_node_t *lightsNode = mxmlFindElement(tree, tree, "lights", NULL, NULL, MXML_DESCEND_ALL);
     if (lightsNode) {
-        for (mxml_node_t *lightNode = mxmlFindElement(lightsNode, lightsNode, "light", NULL, NULL, MXML_DESCEND);
+        for (mxml_node_t *lightNode = mxmlFindElement(lightsNode, lightsNode, "light", NULL, NULL, MXML_DESCEND_ALL);
              lightNode;
-             lightNode = mxmlFindElement(lightNode, lightsNode, "light", NULL, NULL, MXML_NO_DESCEND)) {
+             lightNode = mxmlFindElement(lightNode, lightsNode, "light", NULL, NULL, MXML_DESCEND_NONE)) {
 
             const char *lightID_str = mxmlElementGetAttr(lightNode, "id");
             float posX = atof(mxmlElementGetAttr(lightNode, "x"));
@@ -171,19 +200,19 @@ int loadConfiguration(const char *filename, ucncAssembly **rootAssembly, ucncLig
             float posZ = atof(mxmlElementGetAttr(lightNode, "z"));
 
             // Ambient
-            mxml_node_t *ambientNode = mxmlFindElement(lightNode, lightNode, "ambient", NULL, NULL, MXML_DESCEND);
+            mxml_node_t *ambientNode = mxmlFindElement(lightNode, lightNode, "ambient", NULL, NULL, MXML_DESCEND_ALL);
             float ambientR = atof(mxmlElementGetAttr(ambientNode, "r"));
             float ambientG = atof(mxmlElementGetAttr(ambientNode, "g"));
             float ambientB = atof(mxmlElementGetAttr(ambientNode, "b"));
 
             // Diffuse
-            mxml_node_t *diffuseNode = mxmlFindElement(lightNode, lightNode, "diffuse", NULL, NULL, MXML_DESCEND);
+            mxml_node_t *diffuseNode = mxmlFindElement(lightNode, lightNode, "diffuse", NULL, NULL, MXML_DESCEND_ALL);
             float diffuseR = atof(mxmlElementGetAttr(diffuseNode, "r"));
             float diffuseG = atof(mxmlElementGetAttr(diffuseNode, "g"));
             float diffuseB = atof(mxmlElementGetAttr(diffuseNode, "b"));
 
             // Specular
-            mxml_node_t *specularNode = mxmlFindElement(lightNode, lightNode, "specular", NULL, NULL, MXML_DESCEND);
+            mxml_node_t *specularNode = mxmlFindElement(lightNode, lightNode, "specular", NULL, NULL, MXML_DESCEND_ALL);
             float specularR = atof(mxmlElementGetAttr(specularNode, "r"));
             float specularG = atof(mxmlElementGetAttr(specularNode, "g"));
             float specularB = atof(mxmlElementGetAttr(specularNode, "b"));
@@ -198,7 +227,7 @@ int loadConfiguration(const char *filename, ucncAssembly **rootAssembly, ucncLig
 
             ucncLight *light = ucncLightNew(lightID, posX, posY, posZ, ambientR, ambientG, ambientB, diffuseR, diffuseG, diffuseB, specularR, specularG, specularB);
             if (light) {
-                ucncLight **temp = realloc(loadedLights, (loadedLightCount + 1) * sizeof(ucncLight*));
+                ucncLight **temp = realloc(loadedLights, (loadedLightCount + 1) * sizeof(ucncLight *));
                 if (!temp) {
                     fprintf(stderr, "Reallocation failed for lights.\n");
                     ucncLightFree(light);

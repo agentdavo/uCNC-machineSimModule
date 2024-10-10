@@ -10,6 +10,7 @@
 #include "light.h"
 #include "config.h"
 #include "utils.h"
+#include "api.h"
 
 // Define M_PI if not defined
 #ifndef M_PI
@@ -157,6 +158,9 @@ int main(int argc, char *argv[]) {
 
         // Render the scene
         renderScene(outputFilename, &frameTiming, frame);
+
+        // Notify the API that the frame is ready
+        ucncFrameReady();
 
         double renderEnd = getCurrentTimeInMs();
         frameTiming.sceneRenderTime = renderEnd - renderStart;
