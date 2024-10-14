@@ -9,6 +9,9 @@
 extern ucncLight **globalLights;
 extern int globalLightCount;
 
+extern int framebufferWidth;
+extern int framebufferHeight;
+
 // Global frame buffer and scene declaration
 extern ZBuffer *globalFramebuffer;
 extern ucncAssembly *globalScene;
