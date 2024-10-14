@@ -3,6 +3,8 @@
 
 #include "tinygl/include/zbuffer.h"
 #include "assembly.h"
+#include "camera.h"
+
 
 // Global frame buffer and scene declaration
 extern ZBuffer *globalFramebuffer;

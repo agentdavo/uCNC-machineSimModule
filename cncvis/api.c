@@ -1,4 +1,5 @@
 #include "api.h"
+#include "camera.h"
 #include <stdio.h>
 #include <string.h>
 
