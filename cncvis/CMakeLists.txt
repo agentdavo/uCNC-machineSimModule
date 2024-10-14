@@ -39,10 +39,7 @@ include_directories(
 #                               SOURCE FILES
 # =============================================================================
 
-# Main application source
-set(MAIN_SRC ${CMAKE_SOURCE_DIR}/main.c)
-
-# Additional application sources
+# Additional application sources (replace main.c with utils, actor, etc.)
 set(ADDITIONAL_SRC
     ${CMAKE_SOURCE_DIR}/utils.c
     ${CMAKE_SOURCE_DIR}/actor.c
@@ -69,22 +66,19 @@ add_library(tinygl STATIC ${TGL_SRC})
 # Create static library for libstlio
 add_library(stlio STATIC ${STLIO_SRC})
 
-# =============================================================================
-#                             FINAL EXECUTABLE
-# =============================================================================
+# Create static library for cncvis (this is the core library)
+add_library(cncvis STATIC ${ADDITIONAL_SRC})
 
-# Define the executable
-add_executable(${PROJECT_NAME} ${MAIN_SRC} ${ADDITIONAL_SRC})
-
-# Link libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE tinygl stlio m mxml)
+# Link the TinyGL and STLIO libraries with cncvis
+target_link_libraries(cncvis PRIVATE tinygl stlio m mxml)
 
 # =============================================================================
-#                                  CLEANUP
+#                                 INSTALLATION
 # =============================================================================
 
-# Clean target for removing build artifacts
-set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_BINARY_DIR}/CMakeFiles")
+# If you want to install this library somewhere for later use:
+# install(TARGETS cncvis DESTINATION lib)
+# install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/ DESTINATION include)
 
 # =============================================================================
 #                                 END
