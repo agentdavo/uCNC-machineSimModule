@@ -32,7 +32,7 @@ include_directories(
     ${TGL_DIR}/include
     ${STLIO_DIR}/include
     ${STB_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/src  # Updated to use `CMAKE_CURRENT_SOURCE_DIR`
+    ${CMAKE_CURRENT_SOURCE_DIR}  # Updated to use `CMAKE_CURRENT_SOURCE_DIR`
 )
 
 # =============================================================================
@@ -41,13 +41,13 @@ include_directories(
 
 # Additional application sources (use CMAKE_CURRENT_SOURCE_DIR for relative paths)
 set(ADDITIONAL_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/actor.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/assembly.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/camera.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/light.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/config.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/api.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/utils.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/actor.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/assembly.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/camera.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/light.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/config.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/api.c
 )
 
 # TinyGL source files
