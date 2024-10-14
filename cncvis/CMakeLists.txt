@@ -15,10 +15,10 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 #                                DIRECTORIES
 # =============================================================================
 
-# TinyGL, STLIO, and STB directories
-set(TGL_DIR ${CMAKE_SOURCE_DIR}/tinygl)
-set(STLIO_DIR ${CMAKE_SOURCE_DIR}/libstlio)
-set(STB_DIR ${CMAKE_SOURCE_DIR}/stb)
+# TinyGL, STLIO, and STB directories relative to the `cncvis` directory
+set(TGL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tinygl)
+set(STLIO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libstlio)
+set(STB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/stb)
 
 # =============================================================================
 #                              COMPILER FLAGS
@@ -27,27 +27,27 @@ set(STB_DIR ${CMAKE_SOURCE_DIR}/stb)
 # Compiler flags
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -Wall -g -Wno-unused-function")
 
-# Include directories
+# Include directories (relative to `cncvis`)
 include_directories(
     ${TGL_DIR}/include
     ${STLIO_DIR}/include
     ${STB_DIR}
-    ${CMAKE_SOURCE_DIR}/src  # Updated to include the src folder
+    ${CMAKE_CURRENT_SOURCE_DIR}/src  # Updated to use `CMAKE_CURRENT_SOURCE_DIR`
 )
 
 # =============================================================================
 #                               SOURCE FILES
 # =============================================================================
 
-# Additional application sources (with corrected paths)
+# Additional application sources (use CMAKE_CURRENT_SOURCE_DIR for relative paths)
 set(ADDITIONAL_SRC
-    ${CMAKE_SOURCE_DIR}/utils.c
-    ${CMAKE_SOURCE_DIR}/actor.c
-    ${CMAKE_SOURCE_DIR}/assembly.c
-    ${CMAKE_SOURCE_DIR}/camera.c
-    ${CMAKE_SOURCE_DIR}/light.c
-    ${CMAKE_SOURCE_DIR}/config.c
-    ${CMAKE_SOURCE_DIR}/api.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/actor.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/assembly.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/camera.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/light.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/config.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/api.c
 )
 
 # TinyGL source files
@@ -78,7 +78,7 @@ target_link_libraries(cncvis PRIVATE tinygl stlio m mxml)
 
 # If you want to install this library somewhere for later use:
 # install(TARGETS cncvis DESTINATION lib)
-# install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/ DESTINATION include)
+# install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION include)
 
 # =============================================================================
 #                                 END
