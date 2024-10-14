@@ -32,14 +32,14 @@ include_directories(
     ${TGL_DIR}/include
     ${STLIO_DIR}/include
     ${STB_DIR}
-    ${CMAKE_SOURCE_DIR}  # Include current directory for utils.h, etc.
+    ${CMAKE_SOURCE_DIR}/src  # Updated to include the src folder
 )
 
 # =============================================================================
 #                               SOURCE FILES
 # =============================================================================
 
-# Additional application sources (replace main.c with utils, actor, etc.)
+# Additional application sources (with corrected paths)
 set(ADDITIONAL_SRC
     ${CMAKE_SOURCE_DIR}/utils.c
     ${CMAKE_SOURCE_DIR}/actor.c
