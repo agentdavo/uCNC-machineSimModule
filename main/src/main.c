@@ -57,8 +57,11 @@ static uint8_t *cbuf[LV_CANVAS_BUF_SIZE(CANVAS_WIDTH, CANVAS_HEIGHT, 32, LV_DRAW
 /**********************
  *   GLOBAL VARIABLES
  **********************/
-extern ZBuffer *globalFramebuffer;  // Make sure it matches your `api.h`
+extern ZBuffer *globalFramebuffer;
 extern ucncAssembly *globalScene;
+
+int framebufferWidth;
+int framebufferHeight;
 
 /*********************
  *   GLOBAL FUNCTIONS
@@ -125,9 +128,10 @@ int main(int argc, char **argv) {
     // Initialize the TinyGL framebuffer (through the CNC API)
 	
     printf("Setting Z-buffer dimensions...\n");
-    ucncSetZBufferDimensions(CANVAS_WIDTH-16, CANVAS_HEIGHT-16);
+    ucncSetZBufferDimensions(CANVAS_WIDTH-16, CANVAS_HEIGHT-16, &framebufferWidth, &framebufferHeight);
 
-    printf("Z-buffer initialized: %d x %d\n", globalFramebuffer->xsize, globalFramebuffer->ysize);
+    // Now framebufferWidth and framebufferHeight will be updated to the correct values
+    printf("Framebuffer Size: %d x %d\n", framebufferWidth, framebufferHeight);
 
     // Initialize the CNC scene (you could load an initial configuration here)
     printf("Loading CNC scene...\n");

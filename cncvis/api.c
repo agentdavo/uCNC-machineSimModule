@@ -18,9 +18,6 @@ ZBuffer *globalFramebuffer = NULL;
 ucncAssembly *globalScene = NULL;
 ucncCamera *globalCamera = NULL;
 
-int framebufferWidth = (int)globalFramebuffer->xsize;
-int framebufferHeight = (int)globalFramebuffer->ysize;
-
 ucncLight **globalLights = NULL;
 int globalLightCount = 0;
 
@@ -104,14 +101,24 @@ void ucncSetAllAssembliesToHome(ucncAssembly *assembly) {
     }
 }
 
-// Set the dimensions of the TinyGL Z-buffer
-void ucncSetZBufferDimensions(int width, int height) {
+// Set the dimensions of the TinyGL Z-buffer and return width/height
+void ucncSetZBufferDimensions(int width, int height, int *outFramebufferWidth, int *outFramebufferHeight) {
+	
     if (globalFramebuffer) {
         ZB_close(globalFramebuffer);
     }
     globalFramebuffer = ZB_open(width, height, ZB_MODE_RGBA, 0);
     if (!globalFramebuffer) {
         fprintf(stderr, "Failed to initialize Z-buffer with dimensions %d x %d.\n", width, height);
+        return;
+    }
+    
+    // Set the output width and height using the provided pointers
+    if (outFramebufferWidth) {
+        *outFramebufferWidth = globalFramebuffer->xsize;
+    }
+    if (outFramebufferHeight) {
+        *outFramebufferHeight = globalFramebuffer->ysize;
     }
 }
 

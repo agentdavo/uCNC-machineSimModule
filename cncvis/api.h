@@ -9,9 +9,6 @@
 extern ucncLight **globalLights;
 extern int globalLightCount;
 
-extern int framebufferWidth;
-extern int framebufferHeight;
-
 // Global frame buffer and scene declaration
 extern ZBuffer *globalFramebuffer;
 extern ucncAssembly *globalScene;
@@ -23,7 +20,7 @@ void ucncSetAllAssembliesToHome(ucncAssembly *assembly);
 void ucncUpdateMotion(ucncAssembly *assembly, float value);
 
 // Z-buffer handling
-void ucncSetZBufferDimensions(int width, int height);
+void ucncSetZBufferDimensions(int width, int height, int *outFramebufferWidth, int *outFramebufferHeight);
 const float* ucncGetZBufferOutput(void);
 void ucncFrameReady(ZBuffer *framebuffer);
 
