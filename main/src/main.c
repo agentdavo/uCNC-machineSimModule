@@ -123,15 +123,17 @@ int main(int argc, char **argv) {
     lv_obj_center(canvas);
 
     // Initialize the TinyGL framebuffer (through the CNC API)
+	
     printf("Setting Z-buffer dimensions...\n");
-    ucncSetZBufferDimensions(CANVAS_WIDTH, CANVAS_HEIGHT);
+    ucncSetZBufferDimensions(CANVAS_WIDTH-16, CANVAS_HEIGHT-16);
 
     printf("Z-buffer initialized: %d x %d\n", globalFramebuffer->xsize, globalFramebuffer->ysize);
 
     // Initialize the CNC scene (you could load an initial configuration here)
     printf("Loading CNC scene...\n");
+	
     // Assume you have a function to load and initialize the scene, e.g., from an XML config:
-    if (!loadConfiguration("config.xml", &globalScene, NULL, 0)) {
+    if (!loadConfiguration("../cncvis/machines/meca500/config.xml", &globalScene, NULL, 0)) {
         fprintf(stderr, "Failed to load CNC configuration.\n");
         return EXIT_FAILURE;
     }

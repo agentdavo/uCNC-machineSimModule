@@ -18,9 +18,6 @@ ZBuffer *globalFramebuffer = NULL;
 ucncAssembly *globalScene = NULL;
 ucncCamera *globalCamera = NULL;
 
-int framebufferWidth = 1280;
-int framebufferHeight = 720;
-
 ucncLight **globalLights = NULL;
 int globalLightCount = 0;
 
