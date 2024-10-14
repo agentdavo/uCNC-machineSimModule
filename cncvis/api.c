@@ -18,6 +18,12 @@ ZBuffer *globalFramebuffer = NULL;
 ucncAssembly *globalScene = NULL;
 ucncCamera *globalCamera = NULL;
 
+int framebufferWidth = 1280;
+int framebufferHeight = 720;
+
+ucncLight **globalLights = NULL;
+int globalLightCount = 0;
+
 // Motion handling function by assembly name
 void ucncUpdateMotionByName(const char *assemblyName, float value) {
     ucncAssembly *assembly = findAssemblyByName(globalScene, assemblyName);

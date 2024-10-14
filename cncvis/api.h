@@ -6,6 +6,12 @@
 #include "camera.h"
 #include "config.h"
 
+extern int framebufferWidth;
+extern int framebufferHeight;
+
+extern ucncLight **globalLights;
+extern int globalLightCount;
+
 // Global frame buffer and scene declaration
 extern ZBuffer *globalFramebuffer;
 extern ucncAssembly *globalScene;

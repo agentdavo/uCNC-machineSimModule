@@ -19,7 +19,6 @@
 
 #include "../../lv_conf.h"
 #include "../../lvgl/lvgl.h"
-#include "../../cncvis/api.h"
 #include "../../cncvis/tinygl/include/GL/gl.h"
 #include "../../cncvis/tinygl/include/zbuffer.h"
 
@@ -27,6 +26,8 @@
 #define CHAD_MATH_IMPL
 #include "../../cncvis/3dMath.h"
 #include "../../cncvis/tinygl/src/font8x8_basic.h"
+
+#include "../../cncvis/api.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -69,24 +70,6 @@ extern void renderPerformanceData(int frameNumber, double totalFrameTime);
 #ifndef M_PI
 #define M_PI 3.14159265
 #endif
-
-/**
- * @brief Retrieves the current system time in milliseconds.
- * @return Current time in milliseconds as a double.
- */
-double getCurrentTimeInMs() {
-#ifdef _WIN32
-    LARGE_INTEGER frequency;
-    LARGE_INTEGER currentTime;
-    QueryPerformanceFrequency(&frequency);
-    QueryPerformanceCounter(&currentTime);
-    return (double)(currentTime.QuadPart * 1000) / frequency.QuadPart;
-#else
-    struct timeval time;
-    gettimeofday(&time, NULL);
-    return (double)(time.tv_sec) * 1000.0 + (double)(time.tv_usec) / 1000.0;
-#endif
-}
 
 /**
  * @brief Render the CNC scene and update the frame buffer.
