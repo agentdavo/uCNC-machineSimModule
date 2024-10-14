@@ -14,6 +14,7 @@ extern ucncCamera *globalCamera;
 // Motion and scene control functions
 void ucncUpdateMotionByName(const char *assemblyName, float value);
 void ucncSetAllAssembliesToHome(ucncAssembly *assembly);
+void ucncUpdateMotion(ucncAssembly *assembly, float value);
 
 // Z-buffer handling
 void ucncSetZBufferDimensions(int width, int height);
