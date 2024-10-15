@@ -19,10 +19,10 @@ ZBuffer* ZB_open(GLint xsize, GLint ysize, GLint mode,
 	if (zb == NULL)
 		return NULL;
 
-	zb->xsize = xsize & ~3; 
+	zb->xsize = xsize & ~3;
 	zb->ysize = ysize;
-	
-	
+
+
 	zb->linesize = (xsize * PSZB);
 
 	switch (mode) {
@@ -182,7 +182,7 @@ static void ZB_copyFrameBufferRGB32(ZBuffer * zb,
 
 	q = zb->pbuf;
 	p1 = (GLuint *) buf;
-	
+
 	for (y = 0; y < zb->ysize; y++) {
 	p = p1;
 	n = zb->xsize >> 2;
@@ -294,7 +294,7 @@ void ZB_copyFrameBuffer(ZBuffer* zb, void* buf, GLint linesize) {
 	ZB_copyBuffer(zb, buf, linesize);
 }
 
-#endif 
+#endif
 /*^ TGL_FEATURE_RENDER_BITS == 16 */
 
 
@@ -307,13 +307,13 @@ void ZB_copyFrameBuffer(ZBuffer* zb, void* buf, GLint linesize) {
 	ZB_copyBuffer(zb, buf, linesize);
 }
 
-#endif 
+#endif
 /* ^TGL_FEATURE_RENDER_BITS == 32 */
 
 /*
  * adr must be aligned on an 'int'
  */
-static void memset_s(void* adr, GLint val, GLint count) {
+static void memset_custom_s(void* adr, GLint val, GLint count) {
 	GLint i, n, v;
 	GLuint* p;
 	GLushort* q;
@@ -360,7 +360,7 @@ void ZB_clear(ZBuffer* zb, GLint clear_z, GLint z, GLint clear_color, GLint r, G
 	GLint y;
 	PIXEL* pp;
 	if (clear_z) {
-		memset_s(zb->zbuf, z, zb->xsize * zb->ysize);
+		memset_custom_s(zb->zbuf, z, zb->xsize * zb->ysize);
 	}
 	if (clear_color) {
 		pp = zb->pbuf;
@@ -372,7 +372,7 @@ void ZB_clear(ZBuffer* zb, GLint clear_z, GLint z, GLint clear_color, GLint r, G
 #else
 			color = RGB_TO_PIXEL(r, g, b);
 #endif
-			memset_s(pp, color, zb->xsize);
+			memset_custom_s(pp, color, zb->xsize);
 #elif TGL_FEATURE_RENDER_BITS == 32
 #if TGL_FEATURE_FORCE_CLEAR_NO_COPY_COLOR
 			color = TGL_NO_COPY_COLOR;

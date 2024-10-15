@@ -4,7 +4,7 @@ project(lvgl C CXX)
 # Set the correct FreeRTOS port for your system (e.g., Posix for WSL)
 set(FREERTOS_PORT GCC_POSIX CACHE STRING "Port for FreeRTOS on Posix environment")
 
-option(USE_FREERTOS "Enable FreeRTOS" OFF) # Turn this on to enable FreeRTOS 
+option(USE_FREERTOS "Enable FreeRTOS" OFF) # Turn this on to enable FreeRTOS
 
 if(USE_FREERTOS)
     message(STATUS "FreeRTOS is enabled")
@@ -92,7 +92,7 @@ endif()
 
 # Define LVGL configuration as a simple include
 target_compile_definitions(main PRIVATE LV_CONF_INCLUDE_SIMPLE)
-target_link_libraries(main lvgl lvgl::examples lvgl::demos lvgl::thorvg cncvis ${SDL2_LIBRARIES} m pthread)
+target_link_libraries(main lvgl lvgl::examples lvgl::demos lvgl::thorvg cncvis tinygl-static mxml_static ${SDL2_LIBRARIES} m pthread)
 
 # Only link freertos_config if the FreeRTOS directory exists
 if(USE_FREERTOS)
@@ -178,4 +178,3 @@ else()
     message(STATUS "AddressSanitizer disabled")
 endif()
 endif()
-

@@ -11,9 +11,16 @@
 #include <sys/time.h>
 #include <time.h>
 
-// Forward declarations if necessary
-struct ucncLight;
-struct ucncAssembly;
+// External Global Variables
+extern ZBuffer *globalFramebuffer;
+extern ucncCamera *globalCamera;
+extern ucncAssembly *globalScene;
+extern ucncLight **globalLights;
+extern int globalLightCount;
+
+// External Framebuffer Dimensions
+extern int framebufferWidth;
+extern int framebufferHeight;
 
 // Function to get current time in milliseconds
 double getCurrentTimeInMs();
@@ -59,23 +66,11 @@ void CreateGround(float sizeX, float sizeY);
 void printAssemblyHierarchy(const struct ucncAssembly *assembly, int level);
 
 // Scene Rendering
-void renderScene(const char *outputFilename, FrameTiming *frameTiming, int frameNumber);
+void renderScene(void);
 
 // Framebuffer Utilities
 void saveFramebufferAsImage(ZBuffer *framebuffer, const char *filename, int width, int height);
 
-// Freeing Resources
-void freeLights(struct ucncLight **lights, int lightCount);
-
-// External Global Variables
-extern ZBuffer *globalFramebuffer;
-extern ucncCamera *globalCamera;
-extern ucncAssembly *globalScene;
-extern ucncLight **globalLights;
-extern int globalLightCount;
-
-// External Framebuffer Dimensions
-extern int framebufferWidth;
-extern int framebufferHeight;
+void getDirectoryFromPath(const char *filePath, char *dirPath);
 
 #endif // UTILS_H

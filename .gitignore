@@ -1,2 +1,5 @@
 
 *.o
+/build
+/cncvis/mxml/build
+/bin

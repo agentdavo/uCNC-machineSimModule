@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "utils.h"
+#include "assembly.h"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
@@ -226,79 +227,37 @@ void saveFramebufferAsImage(ZBuffer *framebuffer, const char *filename, int widt
     free(pbuf);
 }
 
-void renderScene(const char *outputFilename, FrameTiming *frameTiming, int frameNumber) {
-    if (!globalFramebuffer || !globalCamera || !globalScene || !outputFilename) {
-        fprintf(stderr, "Render scene failed: Missing framebuffer, camera, scene, or output filename.\n");
+void renderScene() {
+
+    if (!globalFramebuffer || !globalCamera || !globalScene ) {
+        fprintf(stderr, "Render scene failed: Missing framebuffer, camera, scene.\n");
         return;
     }
 
     // Clear the color and depth buffers
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity(); // Reset the modelview matrix
 
     float topColor[3] = {0.529f, 0.808f, 0.980f};    // Light Sky Blue
     float bottomColor[3] = {0.000f, 0.000f, 0.545f}; // Dark Blue
-
-    // --- Render Background First ---
     setBackground(topColor, bottomColor);
 
     // --- Set Up Camera ---
     ucncCameraApply(globalCamera);
 
-    // --- Set Up Lights ---
-    for (int i = 0; i < globalLightCount; i++) {
-        ucncLightAdd(globalLights[i]);
-    }
-
-    // --- Render the Ground ---
-    CreateGround(500.0f, 500.0f);
-
-    // --- Render the Assembly ---
-    ucncAssemblyRender(globalScene);
-
-    // --- Display FPS and Performance Data ---
-    // Set up orthographic projection for 2D rendering
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
-
-    // Set text size and color
-    glTextSize(GL_TEXT_SIZE16x16); // Assuming glTextSize is defined elsewhere
-    unsigned int color = 0x00FFFFFF; // White color
-
-    // Prepare the text to display, line by line
-    char textBuffer1[128];
-    char textBuffer2[128];
-    char textBuffer3[128];
-
-    // Fill the buffers with relevant text
-    snprintf(textBuffer1, sizeof(textBuffer1), "FRM: %d", frameNumber + 1);
-    snprintf(textBuffer2, sizeof(textBuffer2), "FPS: %.1f", 1000.0 / frameTiming->totalFrameTime);
-    snprintf(textBuffer3, sizeof(textBuffer3), "TIM: %.2f ms", frameTiming->sceneRenderTime);
-
-    // Render each line of text at the desired positions
-    int x = 10;  // Position from the left
-    int y = 10;  // Position from the top, increase for each new line
-
-    glDrawText((unsigned char *)textBuffer1, x, y, color);        // First line
-    glDrawText((unsigned char *)textBuffer2, x, y + 20, color);   // Second line, shifted down
-    glDrawText((unsigned char *)textBuffer3, x, y + 40, color);   // Third line, shifted further down
+    // Render the main assembly or objects in the scene
+    // renderAssembly(globalScene);
 
     // Restore matrices
     glPopMatrix();
     glMatrixMode(GL_PROJECTION);
+
     glPopMatrix();
     glMatrixMode(GL_MODELVIEW);
 
     glFlush();
-
-    // Save the framebuffer as an image
-    saveFramebufferAsImage(globalFramebuffer, outputFilename, framebufferWidth, framebufferHeight);
 }
 
 void printAssemblyHierarchy(const ucncAssembly *assembly, int level) {
@@ -316,5 +275,20 @@ void printAssemblyHierarchy(const ucncAssembly *assembly, int level) {
     // Recursively print child assemblies
     for(int i = 0; i < assembly->assemblyCount; i++) {
         printAssemblyHierarchy(assembly->assemblies[i], level + 1);
+    }
+}
+
+
+void getDirectoryFromPath(const char *filePath, char *dirPath) {
+    const char *lastSlash = strrchr(filePath, '/');
+    if (!lastSlash) {
+        lastSlash = strrchr(filePath, '\\');
+    }
+    if (lastSlash) {
+        size_t length = lastSlash - filePath;
+        strncpy(dirPath, filePath, length);
+        dirPath[length] = '\0';
+    } else {
+        strcpy(dirPath, ".");
     }
 }

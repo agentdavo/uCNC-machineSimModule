@@ -38,4 +38,6 @@ void ucncAssemblyRender(const ucncAssembly *assembly);
 void ucncAssemblyFree(ucncAssembly *assembly);
 ucncAssembly* findAssemblyByName(ucncAssembly *rootAssembly, const char *name);
 
+void cleanupAssemblies(ucncAssembly **assemblies, int assemblyCount);
+
 #endif // ASSEMBLY_H

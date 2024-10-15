@@ -18,13 +18,14 @@ ucncAssembly* ucncAssemblyNew(const char *name, const char *parentName,
                               float homeRotationX, float homeRotationY, float homeRotationZ,
                               float colorR, float colorG, float colorB,
                               const char *motionType, char motionAxis, int invertMotion) {
+
     ucncAssembly *assembly = malloc(sizeof(ucncAssembly));
     if (!assembly) {
         fprintf(stderr, "Memory allocation failed for ucncAssembly '%s'.\n", name ? name : "unknown");
         return NULL;
     }
 
-    // Ensure name is not NULL before using strncpy
+    // Assign name if not NULL
     if (name) {
         strncpy(assembly->name, name, sizeof(assembly->name) - 1);
         assembly->name[sizeof(assembly->name) - 1] = '\0';  // Null-terminate
@@ -34,14 +35,14 @@ ucncAssembly* ucncAssemblyNew(const char *name, const char *parentName,
         return NULL;
     }
 
-    // Ensure parentName is not NULL
+    // Assign parentName, default to "NULL" if NULL
     if (parentName) {
         strncpy(assembly->parentName, parentName, sizeof(assembly->parentName) - 1);
-        assembly->parentName[sizeof(assembly->parentName) - 1] = '\0';  // Null-terminate
     } else {
         strncpy(assembly->parentName, "NULL", sizeof(assembly->parentName) - 1);
-        assembly->parentName[sizeof(assembly->parentName) - 1] = '\0';  // Null-terminate
     }
+    assembly->parentName[sizeof(assembly->parentName) - 1] = '\0';  // Null-terminate
+
 
     // Set origin, position, rotation, and color
     assembly->originX = originX;
@@ -96,8 +97,8 @@ int ucncAssemblyAddActor(ucncAssembly *assembly, ucncActor *actor) {
     ucncActor **temp = realloc(assembly->actors, (assembly->actorCount + 1) * sizeof(ucncActor*));
     if (!temp) {
         // If realloc fails, output error message and return failure
-        fprintf(stderr, "Reallocation failed when adding actor '%s' to assembly '%s'.\n", 
-                actor->name[0] ? actor->name : "(unknown actor)", 
+        fprintf(stderr, "Reallocation failed when adding actor '%s' to assembly '%s'.\n",
+                actor->name[0] ? actor->name : "(unknown actor)",
                 assembly->name[0] ? assembly->name : "(unknown assembly)");
         return 0; // Failure
     }
@@ -107,8 +108,8 @@ int ucncAssemblyAddActor(ucncAssembly *assembly, ucncActor *actor) {
     assembly->actors[assembly->actorCount] = actor;
     assembly->actorCount++;
 
-    printf("Added actor '%s' to assembly '%s'.\n", 
-           actor->name[0] ? actor->name : "(unknown actor)", 
+    printf("Added actor '%s' to assembly '%s'.\n",
+           actor->name[0] ? actor->name : "(unknown actor)",
            assembly->name[0] ? assembly->name : "(unknown assembly)");
 
     return 1; // Success
@@ -126,14 +127,16 @@ int ucncAssemblyAddAssembly(ucncAssembly *parent, ucncAssembly *child) {
     ucncAssembly **temp = realloc(parent->assemblies, (parent->assemblyCount + 1) * sizeof(ucncAssembly*));
     if (!temp) {
         // If realloc fails, output error message and return failure
-        fprintf(stderr, "Reallocation failed when adding assembly '%s' to parent assembly '%s'.\n", 
-                child->name ? child->name : "(unknown child assembly)", 
-                parent->name ? parent->name : "(unknown parent assembly)");
+        fprintf(stderr, "Reallocation failed when adding assembly '%s' to parent assembly '%s'.\n",
+                child->name[0] ? child->name : "(unknown child assembly)",
+                parent->name[0] ? parent->name : "(unknown parent assembly)");
         return 0; // Failure
     }
 
-    // Update the assembly list and increase the count
+    // If realloc succeeds, update the parent->assemblies pointer
     parent->assemblies = temp;
+
+    // Add the child assembly to the parent's assembly list
     parent->assemblies[parent->assemblyCount] = child;
     parent->assemblyCount++;
 
@@ -147,13 +150,13 @@ void ucncAssemblyRender(const ucncAssembly *assembly) {
 
     // Apply the assembly's transformations
     glTranslatef(assembly->positionX, assembly->positionY, assembly->positionZ);  // Move to assembly position
-    
+
     // Apply the origin transformation and rotations
     glTranslatef(assembly->originX, assembly->originY, assembly->originZ);
     glRotatef(assembly->rotationX, 1.0f, 0.0f, 0.0f);
     glRotatef(assembly->rotationY, 0.0f, 1.0f, 0.0f);
     glRotatef(assembly->rotationZ, 0.0f, 0.0f, 1.0f);
-    
+
     // Move back by origin after rotation (inverted)
     glTranslatef(-assembly->originX, -assembly->originY, -assembly->originZ);
 
@@ -172,8 +175,8 @@ void ucncAssemblyRender(const ucncAssembly *assembly) {
     }
 
     // Log assembly rendering details (for debugging)
-    printf("Rendering assembly: %s at position (%.2f, %.2f, %.2f) with rotation (%.2f, %.2f, %.2f)\n", 
-           assembly->name, assembly->positionX, assembly->positionY, assembly->positionZ, 
+    printf("Rendering assembly: %s at position (%.2f, %.2f, %.2f) with rotation (%.2f, %.2f, %.2f)\n",
+           assembly->name, assembly->positionX, assembly->positionY, assembly->positionZ,
            assembly->rotationX, assembly->rotationY, assembly->rotationZ);
 
     glPopMatrix(); // Restore the previous transformation matrix
@@ -223,4 +226,13 @@ void ucncAssemblyFree(ucncAssembly *assembly) {
 
     // Free the memory allocated for the assembly itself
     free(assembly);
+}
+
+void cleanupAssemblies(ucncAssembly **assemblies, int assemblyCount)
+{
+    for (int i = 0; i < assemblyCount; i++)
+    {
+        ucncAssemblyFree(assemblies[i]);
+    }
+    free(assemblies);
 }

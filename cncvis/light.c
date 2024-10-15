@@ -7,9 +7,9 @@
 
 // Implementation of ucncLightNew, ucncLightAdd, ucncLightSet, ucncLightFree
 
-ucncLight* ucncLightNew(GLenum lightId, float posX, float posY, float posZ, 
-                        float ambientR, float ambientG, float ambientB, 
-                        float diffuseR, float diffuseG, float diffuseB, 
+ucncLight* ucncLightNew(GLenum lightId, float posX, float posY, float posZ,
+                        float ambientR, float ambientG, float ambientB,
+                        float diffuseR, float diffuseG, float diffuseB,
                         float specularR, float specularG, float specularB) {
     ucncLight *light = malloc(sizeof(ucncLight));
     if (!light) {
@@ -70,4 +70,15 @@ void ucncLightFree(ucncLight *light) {
     if (light) {
         free(light);
     }
+}
+
+void freeAllLights(ucncLight **lights, int lightCount)
+{
+    if (!lights)
+        return;
+    for (int i = 0; i < lightCount; i++)
+    {
+        ucncLightFree(lights[i]);
+    }
+    free(lights);
 }

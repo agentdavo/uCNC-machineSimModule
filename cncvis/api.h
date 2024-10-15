@@ -5,13 +5,9 @@
 #include "assembly.h"
 #include "camera.h"
 #include "config.h"
+#include "utils.h"
 
-extern ucncLight **globalLights;
-extern int globalLightCount;
-
-// Global frame buffer and scene declaration
 extern ZBuffer *globalFramebuffer;
-extern ucncAssembly *globalScene;
 extern ucncCamera *globalCamera;
 
 // Motion and scene control functions
@@ -28,7 +24,7 @@ void ucncFrameReady(ZBuffer *framebuffer);
 int ucncLoadNewConfiguration(const char *configFile);
 
 // Initialization and cleanup (if needed)
-int cncvis_init(ZBuffer *externalFramebuffer);
+int cncvis_init(ZBuffer *frameBuffer);
 void cncvis_cleanup();
 
 #endif // API_H

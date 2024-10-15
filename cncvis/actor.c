@@ -10,7 +10,8 @@
 
 // Implementation of ucncActorNew, ucncActorRender, ucncActorFree
 
-ucncActor* ucncActorNew(const char *name, const char *stlFile, float colorR, float colorG, float colorB) {
+ucncActor* ucncActorNew(const char *name, const char *stlFile, float colorR, float colorG, float colorB, const char *configDir) {
+
     if (!stlFile) {
         fprintf(stderr, "Invalid STL file name for actor '%s'.\n", name);
         return NULL;
@@ -21,6 +22,15 @@ ucncActor* ucncActorNew(const char *name, const char *stlFile, float colorR, flo
         fprintf(stderr, "Memory allocation failed for ucncActor '%s'.\n", name);
         return NULL;
     }
+
+     // Buffer to store the full STL file path
+    char fullPath[1024];
+
+    // Construct the full path for the STL file
+    snprintf(fullPath, sizeof(fullPath), "%s/%s", configDir, stlFile);
+
+    printf("Loading STL file from: %s\n", fullPath);
+
     strncpy(actor->name, name, sizeof(actor->name) - 1);
     actor->originX = actor->originY = actor->originZ = 0.0f;
     actor->positionX = actor->positionY = actor->positionZ = 0.0f;
@@ -43,7 +53,7 @@ ucncActor* ucncActorNew(const char *name, const char *stlFile, float colorR, flo
     enum stlFileType fType;
 
     e = stlioReadFileMem(
-        (char*)stlFile,  // Cast to char* as required by stlioReadFileMem
+        (char*)fullPath,  // Cast to char* as required by stlioReadFileMem
         &(buf.lpTri),
         &dwTriCount,
         &dwStride,

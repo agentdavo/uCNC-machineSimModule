@@ -20,7 +20,7 @@ typedef struct ucncActor {
 } ucncActor;
 
 // Function declarations for creating and freeing actors
-ucncActor* ucncActorNew(const char *name, const char *stlFile, float colorR, float colorG, float colorB);
+ucncActor* ucncActorNew(const char *name, const char *stlFile, float colorR, float colorG, float colorB, const char *configDir);
 void ucncActorRender(ucncActor *actor);
 void ucncActorFree(ucncActor *actor);
 

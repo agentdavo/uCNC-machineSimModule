@@ -14,9 +14,9 @@ typedef struct ucncLight {
 } ucncLight;
 
 // Function to create a new light
-ucncLight* ucncLightNew(GLenum lightId, float posX, float posY, float posZ, 
-                        float ambientR, float ambientG, float ambientB, 
-                        float diffuseR, float diffuseG, float diffuseB, 
+ucncLight* ucncLightNew(GLenum lightId, float posX, float posY, float posZ,
+                        float ambientR, float ambientG, float ambientB,
+                        float diffuseR, float diffuseG, float diffuseB,
                         float specularR, float specularG, float specularB);
 
 // Function to add (enable and set) a light in OpenGL
@@ -27,5 +27,8 @@ void ucncLightSet(ucncLight *light);
 
 // Function to free a light
 void ucncLightFree(ucncLight *light);
+
+// Function to free loaded lights
+void freeAllLights(ucncLight **lights, int lightCount);
 
 #endif // LIGHT_H
