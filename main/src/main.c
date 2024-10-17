@@ -5,6 +5,10 @@
 
 #include "main.h"
 
+static void process_mouse_events(void);                    // Declaring process_mouse_events
+static void update_camera_view(int32_t dx, int32_t dy);    // Declaring update_camera_view
+static void update_camera_matrix(ucncCamera *camera);      // Declaring update_camera_matrix
+
 // Global Scene State
 ZBuffer *globalFramebuffer = NULL;
 ucncAssembly *globalScene = NULL;
@@ -130,11 +134,14 @@ int main(int argc, char **argv)
     printf("Init done..\n");
 
     // Set up a timer to render the CNC scene using TinyGL and LVGL
-    lv_timer_create(render_timer_cb, 1000, NULL);
+    lv_timer_create(render_timer_cb, 40, NULL);
 
 #if LV_USE_OS == LV_OS_NONE
     while (1)
     {
+        // Handle inputs
+        process_mouse_events();
+
         lv_timer_handler();
     }
 #elif LV_USE_OS == LV_OS_FREERTOS
@@ -144,17 +151,51 @@ int main(int argc, char **argv)
     return 0;
 }
 
+#define ORBIT_RADIUS 500.0f            // Distance from the origin
+#define ORBIT_ELEVATION 250.0f          // Elevation above the XY plane
+#define ORBIT_ROTATION_SPEED 20.0f      // Speed in degrees per second
+
 static void render_timer_cb(lv_timer_t *timer)
 {
     (void)timer; // Avoid unused parameter warning
 
-    if (!globalCamera)
-    {
-        fprintf(stderr, "Error: Camera pointer is NULL.\n");
-        return;
-    }
+    // Clear the color and depth buffers before rendering
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    // ------------------------------
+    // Set up 3D projection for the scene
+    // ------------------------------
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    // Correct aspect ratio calculation for the framebuffer
+    GLfloat aspectRatio = (GLfloat)globalFramebuffer->xsize / (GLfloat)globalFramebuffer->ysize;
+    gluPerspective(90.0f, aspectRatio, 1.0f, 5000.0f); // FOV, aspect ratio, near, far planes
+
+    // Switch to modelview matrix for placing objects in the 3D scene
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    // Update the camera's orbit
+    updateCameraOrbit(globalCamera, ORBIT_RADIUS, ORBIT_ELEVATION, ORBIT_ROTATION_SPEED);
+
+    // Apply the camera transformation using gluLookAt
+    gluLookAt_custom(
+        globalCamera->positionX, globalCamera->positionY, globalCamera->positionZ,  // Camera position
+        0.0f, 0.0f, 0.0f,  // Look at the origin (this can be changed to another target if needed)
+        globalCamera->upX, globalCamera->upY, globalCamera->upZ  // Up direction (usually set to (0, 0, 1) or similar)
+    );
+
+    // Print the camera details to verify the updates (optional)
+    printCameraDetails(globalCamera);
+
+    // Now render the scene using the updated camera position and orientation
+    ucncAssemblyRender(globalScene);
+
+    // Copy the framebuffer to the LVGL canvas
+    ZB_copyFrameBufferLVGL(globalFramebuffer, (lv_color32_t *)cbuf);
+    lv_obj_invalidate(canvas);
 }
+
 
 /**********************
  *   STATIC FUNCTIONS
@@ -191,4 +232,50 @@ static lv_display_t *hal_init(int32_t w, int32_t h)
     lv_indev_set_group(kb, lv_group_get_default());
 
     return disp;
+}
+
+
+static int32_t last_x = 0, last_y = 0;
+static bool is_dragging = false;
+
+static float glm_rad(float degrees) {
+    return degrees * (M_PI / 180.0f);
+}
+
+// Function definitions
+static void process_mouse_events(void) {
+    int32_t dx = 0; // Placeholder for actual dx calculation
+    int32_t dy = 0; // Placeholder for actual dy calculation
+
+    update_camera_view(dx, dy);  // Now it calls the correct declared function
+}
+
+static void update_camera_view(int32_t dx, int32_t dy) {
+    // Apply dx and dy to update the camera yaw and pitch
+    globalCamera->yaw += (float)dx * 0.1f;  // Example scaling
+    globalCamera->pitch += (float)dy * 0.1f;
+
+    // Clamp pitch to prevent flipping
+    if (globalCamera->pitch > 89.0f) globalCamera->pitch = 89.0f;
+    if (globalCamera->pitch < -89.0f) globalCamera->pitch = -89.0f;
+
+    update_camera_matrix(globalCamera);  // Call the function to update the camera matrix
+}
+
+static void update_camera_matrix(ucncCamera *camera) {
+    // Update the camera direction based on yaw and pitch
+    float dir_x = cos(glm_rad(camera->yaw)) * cos(glm_rad(camera->pitch));
+    float dir_y = sin(glm_rad(camera->pitch));
+    float dir_z = sin(glm_rad(camera->yaw)) * cos(glm_rad(camera->pitch));
+
+    camera->directionX = dir_x;
+    camera->directionY = dir_y;
+    camera->directionZ = dir_z;
+
+    // Recompute view matrix (using a custom implementation of gluLookAt or equivalent)
+    gluLookAt_custom(camera->positionX, camera->positionY, camera->positionZ,
+                     camera->positionX + camera->directionX,
+                     camera->positionY + camera->directionY,
+                     camera->positionZ + camera->directionZ,
+                     camera->upX, camera->upY, camera->upZ);
 }

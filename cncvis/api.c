@@ -165,7 +165,7 @@ int cncvis_init()
 
     // Set up lighting properties for GL_LIGHT0 to simulate distant sunlight
     GLfloat light_position[] = {1000.0, 1000.0, 1000.0, 0.0}; // Directional light pointing from above and to the right
-    GLfloat light_ambient[] = {0.1, 0.1, 0.1, 1.0};  // Very soft ambient lighting
+    GLfloat light_ambient[] = {0.2, 0.2, 0.2, 1.0};  // Very soft ambient lighting
     GLfloat light_diffuse[] = {1.0, 1.0, 1.0, 1.0};  // Full white diffuse lighting
     GLfloat light_specular[] = {1.0, 1.0, 1.0, 1.0}; // Full white specular highlights
     glLightfv(GL_LIGHT0, GL_POSITION, light_position);

@@ -7,10 +7,11 @@
 
 // Camera structure definition
 typedef struct {
-    float positionX, positionY, positionZ;  // Camera position in world space
-    float upX, upY, upZ;                    // Camera's up direction
-    float yaw, pitch;                       // Yaw (rotation around Y axis) and Pitch (rotation around X axis)
-    float zoomLevel;                        // Zoom level for the camera
+    float positionX, positionY, positionZ;    // Camera position in world space
+    float upX, upY, upZ;                      // Camera's up direction (normalized vector)
+    float yaw, pitch;                         // Yaw (rotation around Y axis) and Pitch (rotation around X axis)
+    float directionX, directionY, directionZ; // Camera's direction vector (forward vector)
+    float zoomLevel;                          // Zoom level or FOV (Field of View)
 } ucncCamera;
 
 // Function to create a new camera
