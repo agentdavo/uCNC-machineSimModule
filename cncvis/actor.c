@@ -104,9 +104,9 @@ void ucncActorRender(ucncActor *actor) {
     glMaterialfv(GL_FRONT, GL_SHININESS, matShininess);
 
     // Logging actor rendering details (optional)
-    printf("Rendering actor: %s, Position: (%.2f, %.2f, %.2f), Rotation: (%.2f, %.2f, %.2f)\n",
-       actor->name, actor->positionX, actor->positionY, actor->positionZ,
-       actor->rotationX, actor->rotationY, actor->rotationZ);
+    // printf("Rendering actor: %s, Position: (%.2f, %.2f, %.2f), Rotation: (%.2f, %.2f, %.2f)\n",
+    //   actor->name, actor->positionX, actor->positionY, actor->positionZ,
+    //   actor->rotationX, actor->rotationY, actor->rotationZ);
 
     // Render triangles from the STL data
     glBegin(GL_TRIANGLES);

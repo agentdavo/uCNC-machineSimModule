@@ -22,6 +22,14 @@ int framebufferHeight = 600;
 static lv_obj_t *canvas = NULL;
 static uint8_t cbuf[LV_CANVAS_BUF_SIZE(CANVAS_WIDTH, CANVAS_HEIGHT, LV_COLOR_DEPTH, LV_DRAW_BUF_STRIDE_ALIGN)];
 
+// Global variables for frame timing
+static double previousTime = 0.0;
+static double currentTime = 0.0;
+static int frameCount = 0;
+static float fps = 0.0f;
+float calculateFPS(void);
+void renderFPSData(int frameNumber, float fps);
+
 /* Copy TinyGL framebuffer (ARGB8888) to LVGL buffer (XRGB8888) */
 void ZB_copyFrameBufferLVGL(ZBuffer *zb, lv_color32_t *lv_buf)
 {
@@ -134,7 +142,7 @@ int main(int argc, char **argv)
     printf("Init done..\n");
 
     // Set up a timer to render the CNC scene using TinyGL and LVGL
-    lv_timer_create(render_timer_cb, 40, NULL);
+    lv_timer_create(render_timer_cb, 1, NULL);
 
 #if LV_USE_OS == LV_OS_NONE
     while (1)
@@ -195,12 +203,17 @@ static void render_timer_cb(lv_timer_t *timer)
 
     drawAxis(500.0f); // Draw a reference axis
 
+    // Calculate FPS and timing data
+    float fps = calculateFPS();
+    renderFPSData(frameCount, fps);
+
     // Ensure OpenGL commands are executed
     glFlush();
 
     // Copy the framebuffer to the LVGL canvas
     ZB_copyFrameBufferLVGL(globalFramebuffer, (lv_color32_t *)cbuf);
     lv_obj_invalidate(canvas);
+
 }
 
 
@@ -285,4 +298,59 @@ static void update_camera_matrix(ucncCamera *camera) {
                      camera->positionY + camera->directionY,
                      camera->positionZ + camera->directionZ,
                      camera->upX, camera->upY, camera->upZ);
+}
+
+float calculateFPS(void)
+{
+
+    // Update the current time in seconds
+    currentTime = (double)clock() / CLOCKS_PER_SEC;
+
+    // Calculate FPS every second
+    if (currentTime - previousTime >= 1.0)
+    {
+        fps = (float)frameCount / (currentTime - previousTime);
+
+        // Reset for the next second
+        previousTime = currentTime;
+        frameCount = 0; // Reset frame count after calculating FPS
+    }
+
+    return fps;
+}
+
+
+// Function to render FPS and performance data
+void renderFPSData(int frameNumber, float fps)
+{
+    // Set up orthographic projection for 2D rendering
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    // Set text size and color (assuming these are implemented elsewhere)
+    glTextSize(GL_TEXT_SIZE16x16);
+    unsigned int color = 0x00FFFFFF; // White color
+
+    // Prepare the text to display
+    char textBuffer[256];
+    snprintf(textBuffer, sizeof(textBuffer), "FRM: %d", frameNumber);
+    int x = 10; // Position from the left
+    int y = 10; // Position from the top
+    glDrawText((unsigned char *)textBuffer, x, y, color);
+
+    x = 10; // Position from the left
+    y = 30; // Position from the top
+    snprintf(textBuffer, sizeof(textBuffer), "FPS: %.1f", fps);
+    glDrawText((unsigned char *)textBuffer, x, y, color);
+
+    // Restore matrices
+    glPopMatrix();
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
 }

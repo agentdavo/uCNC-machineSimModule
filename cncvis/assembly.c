@@ -143,6 +143,7 @@ int ucncAssemblyAddAssembly(ucncAssembly *parent, ucncAssembly *child)
 
 void ucncAssemblyRender(const ucncAssembly *assembly) {
 
+
     glPushMatrix(); // Save the current transformation matrix
 
     // Apply assembly transformations
@@ -159,9 +160,9 @@ void ucncAssemblyRender(const ucncAssembly *assembly) {
     glTranslatef(-assembly->originX, -assembly->originY, -assembly->originZ);
 
     // Debugging output: Print assembly details
-    printf("Rendering assembly: %s at position (%.2f, %.2f, %.2f) with rotation (%.2f, %.2f, %.2f)\n",
-           assembly->name, assembly->positionX, assembly->positionY, assembly->positionZ,
-           assembly->rotationX, assembly->rotationY, assembly->rotationZ);
+    // printf("Rendering assembly: %s at position (%.2f, %.2f, %.2f) with rotation (%.2f, %.2f, %.2f)\n",
+    //       assembly->name, assembly->positionX, assembly->positionY, assembly->positionZ,
+    //       assembly->rotationX, assembly->rotationY, assembly->rotationZ);
 
     // Render all actors in this assembly
     for (int i = 0; i < assembly->actorCount; i++) {
