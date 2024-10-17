@@ -162,6 +162,8 @@ static void render_timer_cb(lv_timer_t *timer)
     // Clear the color and depth buffers before rendering
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    glShadeModel(GL_SMOOTH);
+
     // ------------------------------
     // Set up 3D projection for the scene
     // ------------------------------
@@ -190,6 +192,11 @@ static void render_timer_cb(lv_timer_t *timer)
 
     // Now render the scene using the updated camera position and orientation
     ucncAssemblyRender(globalScene);
+
+    drawAxis(500.0f); // Draw a reference axis
+
+    // Ensure OpenGL commands are executed
+    glFlush();
 
     // Copy the framebuffer to the LVGL canvas
     ZB_copyFrameBufferLVGL(globalFramebuffer, (lv_color32_t *)cbuf);

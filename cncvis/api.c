@@ -157,6 +157,8 @@ int cncvis_init()
     // Initialize TinyGL with the provided framebuffer
     glInit(globalFramebuffer);
 
+    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+
     // Clear the color and depth buffers before rendering
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
