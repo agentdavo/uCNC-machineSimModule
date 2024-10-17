@@ -58,4 +58,12 @@ void scanAssembly(const ucncAssembly *assembly, int *totalAssemblies, int *total
 
 void scanGlobalScene(const ucncAssembly *assembly);
 
+
+static double previousTime;
+static double currentTime;
+static int frameCount;
+static float fps;
+float calculateFPS(void);
+void renderFPSData(int frameNumber, float fps);
+
 #endif // UTILS_H

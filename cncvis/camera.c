@@ -2,6 +2,8 @@
 
 #include "camera.h"
 
+extern ucncCamera *globalCamera;
+
 // Implementation of ucncCameraNew, ucncCameraApply, ucncCameraFree
 
 ucncCamera* ucncCameraNew(float posX, float posY, float posZ, float upX, float upY, float upZ) {
@@ -167,6 +169,46 @@ void printCameraDetails(ucncCamera *camera) {
     printf("Camera Up Direction: X: %.2f, Y: %.2f, Z: %.2f\n", camera->upX, camera->upY, camera->upZ);
     printf("Camera Yaw: %.2f, Pitch: %.2f\n", camera->yaw, camera->pitch);
     printf("Camera Zoom Level: %.2f\n", camera->zoomLevel);
+}
+
+// Helper function to convert degrees to radians
+float glm_rad(float degrees) {
+    return degrees * (M_PI / 180.0f);
+}
+
+// Update camera view based on mouse movement (dx, dy)
+void update_camera_view(int32_t dx, int32_t dy) {
+    // Apply dx and dy to update the camera yaw and pitch
+    globalCamera->yaw += (float)dx * 0.1f;  // Example scaling factor for sensitivity
+    globalCamera->pitch += (float)dy * 0.1f;
+
+    // Clamp pitch to prevent flipping
+    if (globalCamera->pitch > 89.0f) globalCamera->pitch = 89.0f;
+    if (globalCamera->pitch < -89.0f) globalCamera->pitch = -89.0f;
+
+    // Update the camera matrix based on new yaw/pitch
+    update_camera_matrix(globalCamera);
+}
+
+// Update the camera's direction and recompute its view matrix
+void update_camera_matrix(ucncCamera *camera) {
+    // Update the camera direction based on yaw and pitch
+    float dir_x = cos(glm_rad(camera->yaw)) * cos(glm_rad(camera->pitch));
+    float dir_y = sin(glm_rad(camera->pitch));
+    float dir_z = sin(glm_rad(camera->yaw)) * cos(glm_rad(camera->pitch));
+
+    camera->directionX = dir_x;
+    camera->directionY = dir_y;
+    camera->directionZ = dir_z;
+
+    // Recompute the view matrix (using your custom gluLookAt function)
+    gluLookAt_custom(
+        camera->positionX, camera->positionY, camera->positionZ,
+        camera->positionX + camera->directionX,
+        camera->positionY + camera->directionY,
+        camera->positionZ + camera->directionZ,
+        camera->upX, camera->upY, camera->upZ
+    );
 }
 
 

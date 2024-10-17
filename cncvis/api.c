@@ -102,7 +102,7 @@ void ucncSetAllAssembliesToHome(ucncAssembly *assembly)
 }
 
 // Set the dimensions of the TinyGL Z-buffer and return width/height
-void ucncSetZBufferDimensions(int width, int height, int *outFramebufferWidth, int *outFramebufferHeight)
+void ucncSetZBufferDimensions(int width, int height)
 {
 
     if (globalFramebuffer)
@@ -116,15 +116,6 @@ void ucncSetZBufferDimensions(int width, int height, int *outFramebufferWidth, i
         return;
     }
 
-    // Set the output width and height using the provided pointers
-    if (outFramebufferWidth)
-    {
-        *outFramebufferWidth = globalFramebuffer->xsize;
-    }
-    if (outFramebufferHeight)
-    {
-        *outFramebufferHeight = globalFramebuffer->ysize;
-    }
 }
 
 // Expose Z-buffer output for external use
@@ -149,13 +140,36 @@ void ucncFrameReady(ZBuffer *framebuffer)
     // Implement any processing, e.g., saving frame, signaling display.
 }
 
-int cncvis_init()
+int cncvis_init(const char *configFile)
 {
-    // Initialize the camera and Y axis as up
-    globalCamera = ucncCameraNew(500.0f, 500.0f, 500.0f, 0.0f, 0.0f, 1.0f);
+
+    char configDir[1024];
+    getDirectoryFromPath(configFile, configDir);
+
+    ucncSetZBufferDimensions(ZGL_FB_WIDTH, ZGL_FB_HEIGHT);
+
+    loadConfiguration(configFile, &globalScene, &globalLights, &globalLightCount);
+    if (!loadConfiguration(configFile, &globalScene, &globalLights, &globalLightCount))
+    {
+        fprintf(stderr, "Failed to load configuration from '%s'.\n", configDir);
+        fprintf(stderr, "Failed to load configuration from '%s'.\n", configFile);
+        return EXIT_FAILURE;
+    }
+    ucncSetAllAssembliesToHome(globalScene);
+    printAssemblyHierarchy(globalScene, 0);
+    printCameraDetails(globalCamera);
+
+    printAssemblyHierarchy(globalScene, 0);
+    printf("Successfully loaded the assembly and %d lights.\n", globalLightCount);
 
     // Initialize TinyGL with the provided framebuffer
     glInit(globalFramebuffer);
+
+    // Initialize the camera and Y axis as up
+    globalCamera = ucncCameraNew(500.0f, 500.0f, 500.0f, 0.0f, 0.0f, 1.0f);
+
+    printCameraDetails(globalCamera);
+    printf("Successfully initialised the global camera.\n");
 
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 
@@ -253,6 +267,31 @@ int ucncLoadNewConfiguration(const char *configFile)
 
     printf("Successfully loaded new configuration from '%s'.\n", configFile);
     return EXIT_SUCCESS;
+}
+
+// Main rendering function
+void cncvis_render(void)
+{
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+
+    GLfloat aspectRatio = (GLfloat)globalFramebuffer->xsize / (GLfloat)globalFramebuffer->ysize;
+    gluPerspective(90.0f, aspectRatio, 1.0f, 5000.0f);
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    // Update camera orbit
+    // updateCameraOrbit(globalCamera, ORBIT_RADIUS, ORBIT_ELEVATION, ORBIT_ROTATION_SPEED);
+    gluLookAt_custom(globalCamera->positionX, globalCamera->positionY, globalCamera->positionZ, 0.0f, 0.0f, 0.0f, globalCamera->upX, globalCamera->upY, globalCamera->upZ);
+
+    ucncAssemblyRender(globalScene);
+    drawAxis(500.0f);
+
+    // Calculate and render FPS
+    float fps = calculateFPS();
+    renderFPSData(frameCount, fps);
 }
 
 void cncvis_cleanup()

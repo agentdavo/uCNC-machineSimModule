@@ -373,3 +373,56 @@ void scanGlobalScene(const ucncAssembly *assembly)
     printf("Total Assemblies: %d\n", totalAssemblies);
     printf("Total Actors: %d\n", totalActors);
 }
+
+
+static double previousTime = 0.0;
+static double currentTime = 0.0;
+static int frameCount = 0;
+static float fps = 0.0f;
+
+// FPS calculation
+float calculateFPS(void)
+{
+    struct timeval time;
+    gettimeofday(&time, NULL);
+    currentTime = (double)(time.tv_sec) * 1000.0 + (double)(time.tv_usec) / 1000.0;
+
+    frameCount++;
+    double deltaTime = currentTime - previousTime;
+
+    if (deltaTime >= 1000.0)  // Every second
+    {
+        fps = (float)frameCount / (deltaTime / 1000.0);  // Calculate FPS
+        previousTime = currentTime;
+        frameCount = 0;  // Reset frame count
+    }
+
+    return fps;
+}
+
+// Render FPS data on the screen
+void renderFPSData(int frameNumber, float fps)
+{
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glTextSize(GL_TEXT_SIZE16x16);
+    unsigned int color = 0x00FFFFFF;
+
+    char textBuffer[256];
+    snprintf(textBuffer, sizeof(textBuffer), "FRM: %d", frameNumber);
+    glDrawText((unsigned char *)textBuffer, 10, 10, color);
+
+    snprintf(textBuffer, sizeof(textBuffer), "FPS: %.1f", fps);
+    glDrawText((unsigned char *)textBuffer, 10, 30, color);
+
+    glPopMatrix();
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+}

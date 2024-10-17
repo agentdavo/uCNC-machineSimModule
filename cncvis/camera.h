@@ -34,4 +34,8 @@ void printCameraDetails(ucncCamera *camera);
 
 void updateCameraOrbit(ucncCamera *camera, float radius, float elevation, float rotationSpeed);
 
+void update_camera_view(int32_t dx, int32_t dy);
+void update_camera_matrix(ucncCamera *camera);
+float glm_rad(float degrees);
+
 #endif // CAMERA_H

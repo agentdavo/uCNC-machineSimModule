@@ -5,30 +5,15 @@
 
 #include "main.h"
 
-static void process_mouse_events(void);                    // Declaring process_mouse_events
-static void update_camera_view(int32_t dx, int32_t dy);    // Declaring update_camera_view
-static void update_camera_matrix(ucncCamera *camera);      // Declaring update_camera_matrix
-
 // Global Scene State
 ZBuffer *globalFramebuffer = NULL;
 ucncAssembly *globalScene = NULL;
 ucncCamera *globalCamera = NULL;
 ucncLight **globalLights = NULL;
-
 int globalLightCount = 0;
-int framebufferWidth = 800;
-int framebufferHeight = 600;
 
 static lv_obj_t *canvas = NULL;
 static uint8_t cbuf[LV_CANVAS_BUF_SIZE(CANVAS_WIDTH, CANVAS_HEIGHT, LV_COLOR_DEPTH, LV_DRAW_BUF_STRIDE_ALIGN)];
-
-// Global variables for frame timing
-static double previousTime = 0.0;
-static double currentTime = 0.0;
-static int frameCount = 0;
-static float fps = 0.0f;
-float calculateFPS(void);
-void renderFPSData(int frameNumber, float fps);
 
 /* Copy TinyGL framebuffer (ARGB8888) to LVGL buffer (XRGB8888) */
 void ZB_copyFrameBufferLVGL(ZBuffer *zb, lv_color32_t *lv_buf)
@@ -87,9 +72,9 @@ int main(int argc, char **argv)
     (void)argc;
     (void)argv;
 
+    // app_init();
+
     char configFile[] = "/home/davidsmith/uCNC-machineSimModule/bin/config.xml";
-    char configDir[1024];
-    getDirectoryFromPath(configFile, configDir);
 
     printf("Initializing LVGL...\n");
     lv_init();
@@ -108,36 +93,7 @@ int main(int argc, char **argv)
     lv_canvas_fill_bg(canvas, lv_color_hex3(0x000), LV_OPA_COVER);
     lv_obj_center(canvas);
 
-    // Initialize the TinyGL framebuffer (through the CNC API)
-    printf("Setting Z-buffer dimensions...\n");
-    ucncSetZBufferDimensions(CANVAS_WIDTH, CANVAS_HEIGHT, &framebufferWidth, &framebufferHeight);
-    printf("Framebuffer Size: %d x %d\n", framebufferWidth, framebufferHeight);
-
-    cncvis_init();
-
-    // Load the new configuration from the provided XML file
-    if (!loadConfiguration(configFile, &globalScene, &globalLights, &globalLightCount))
-    {
-        fprintf(stderr, "Failed to load configuration from '%s'.\n", configDir);
-        fprintf(stderr, "Failed to load configuration from '%s'.\n", configFile);
-        return EXIT_FAILURE;
-    }
-
-    // Scan and log information about the global scene (STL files and sizes)
-    scanGlobalScene(globalScene);
-
-    ucncSetAllAssembliesToHome(globalScene); // Set all assemblies to their home positions
-    ucncAssemblyRender(globalScene);         // Render the full scene
-
-    printAssemblyHierarchy(globalScene, 0);
-    printf("Successfully loaded the assembly and %d lights.\n", globalLightCount);
-
-    printCameraDetails(globalCamera);
-    printf("Successfully initialised the global camera.\n");
-
-    // Copy the framebuffer to the LVGL canvas
-    ZB_copyFrameBufferLVGL(globalFramebuffer, (lv_color32_t *)cbuf);
-    lv_obj_invalidate(canvas);
+    cncvis_init(configFile);
 
     printf("Init done..\n");
 
@@ -149,6 +105,7 @@ int main(int argc, char **argv)
     {
         // Handle inputs
         process_mouse_events();
+        process_keyboard_events();
 
         lv_timer_handler();
     }
@@ -159,61 +116,16 @@ int main(int argc, char **argv)
     return 0;
 }
 
-#define ORBIT_RADIUS 500.0f            // Distance from the origin
-#define ORBIT_ELEVATION 250.0f          // Elevation above the XY plane
-#define ORBIT_ROTATION_SPEED 20.0f      // Speed in degrees per second
-
 static void render_timer_cb(lv_timer_t *timer)
 {
     (void)timer; // Avoid unused parameter warning
 
-    // Clear the color and depth buffers before rendering
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // Call render function from cncvis API (moved to cncvis/api.c)
+    cncvis_render();
 
-    glShadeModel(GL_SMOOTH);
-
-    // ------------------------------
-    // Set up 3D projection for the scene
-    // ------------------------------
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    // Correct aspect ratio calculation for the framebuffer
-    GLfloat aspectRatio = (GLfloat)globalFramebuffer->xsize / (GLfloat)globalFramebuffer->ysize;
-    gluPerspective(90.0f, aspectRatio, 1.0f, 5000.0f); // FOV, aspect ratio, near, far planes
-
-    // Switch to modelview matrix for placing objects in the 3D scene
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-
-    // Update the camera's orbit
-    updateCameraOrbit(globalCamera, ORBIT_RADIUS, ORBIT_ELEVATION, ORBIT_ROTATION_SPEED);
-
-    // Apply the camera transformation using gluLookAt
-    gluLookAt_custom(
-        globalCamera->positionX, globalCamera->positionY, globalCamera->positionZ,  // Camera position
-        0.0f, 0.0f, 0.0f,  // Look at the origin (this can be changed to another target if needed)
-        globalCamera->upX, globalCamera->upY, globalCamera->upZ  // Up direction (usually set to (0, 0, 1) or similar)
-    );
-
-    // Print the camera details to verify the updates (optional)
-    printCameraDetails(globalCamera);
-
-    // Now render the scene using the updated camera position and orientation
-    ucncAssemblyRender(globalScene);
-
-    drawAxis(500.0f); // Draw a reference axis
-
-    // Calculate FPS and timing data
-    float fps = calculateFPS();
-    renderFPSData(frameCount, fps);
-
-    // Ensure OpenGL commands are executed
-    glFlush();
-
-    // Copy the framebuffer to the LVGL canvas
+    // Copy the rendered framebuffer to LVGL's canvas
     ZB_copyFrameBufferLVGL(globalFramebuffer, (lv_color32_t *)cbuf);
     lv_obj_invalidate(canvas);
-
 }
 
 
@@ -254,103 +166,124 @@ static lv_display_t *hal_init(int32_t w, int32_t h)
     return disp;
 }
 
-
-static int32_t last_x = 0, last_y = 0;
-static bool is_dragging = false;
-
-static float glm_rad(float degrees) {
-    return degrees * (M_PI / 180.0f);
-}
-
-// Function definitions
+// Function definitions for mouse events
 static void process_mouse_events(void) {
-    int32_t dx = 0; // Placeholder for actual dx calculation
-    int32_t dy = 0; // Placeholder for actual dy calculation
+    SDL_Event event;
+    static int32_t lastMouseX = 0, lastMouseY = 0;
 
-    update_camera_view(dx, dy);  // Now it calls the correct declared function
+    while (SDL_PollEvent(&event)) {
+        switch (event.type) {
+            case SDL_MOUSEMOTION: {
+                if (is_dragging) {
+                    // Calculate the difference in X and Y movements
+                    int32_t dx = event.motion.x - lastMouseX;
+                    int32_t dy = event.motion.y - lastMouseY;
+
+                    // Update the last known mouse position
+                    lastMouseX = event.motion.x;
+                    lastMouseY = event.motion.y;
+
+                    // Update camera view with the calculated deltas
+                    update_camera_view(dx, dy);
+                }
+                break;
+            }
+
+            case SDL_MOUSEBUTTONDOWN: {
+                if (event.button.button == SDL_BUTTON_LEFT) {
+                    is_dragging = true;
+                }
+                break;
+            }
+
+            case SDL_MOUSEBUTTONUP: {
+                if (event.button.button == SDL_BUTTON_LEFT) {
+                    is_dragging = false;
+                }
+                break;
+            }
+
+            case SDL_MOUSEWHEEL: {
+                if (event.wheel.y > 0) {
+                    globalCamera->zoomLevel += 1.0f;
+                } else if (event.wheel.y < 0) {
+                    globalCamera->zoomLevel -= 1.0f;
+                }
+                break;
+            }
+
+            default:
+                break;
+        }
+    }
 }
 
-static void update_camera_view(int32_t dx, int32_t dy) {
-    // Apply dx and dy to update the camera yaw and pitch
-    globalCamera->yaw += (float)dx * 0.1f;  // Example scaling
-    globalCamera->pitch += (float)dy * 0.1f;
 
-    // Clamp pitch to prevent flipping
-    if (globalCamera->pitch > 89.0f) globalCamera->pitch = 89.0f;
-    if (globalCamera->pitch < -89.0f) globalCamera->pitch = -89.0f;
 
-    update_camera_matrix(globalCamera);  // Call the function to update the camera matrix
-}
+// Function definitions for keyboard events
+static void process_keyboard_events(void) {
 
-static void update_camera_matrix(ucncCamera *camera) {
-    // Update the camera direction based on yaw and pitch
-    float dir_x = cos(glm_rad(camera->yaw)) * cos(glm_rad(camera->pitch));
-    float dir_y = sin(glm_rad(camera->pitch));
-    float dir_z = sin(glm_rad(camera->yaw)) * cos(glm_rad(camera->pitch));
+    const Uint8 *state = SDL_GetKeyboardState(NULL);
 
-    camera->directionX = dir_x;
-    camera->directionY = dir_y;
-    camera->directionZ = dir_z;
+    // Loop through number keys 1 to 6 and corresponding links link1 to link6
+    for (int i = 1; i <= 6; i++) {
+        // Create the assembly name dynamically (e.g., "link1", "link2", etc.)
+        char assemblyName[10];
+        snprintf(assemblyName, sizeof(assemblyName), "link%d", i);
 
-    // Recompute view matrix (using a custom implementation of gluLookAt or equivalent)
-    gluLookAt_custom(camera->positionX, camera->positionY, camera->positionZ,
-                     camera->positionX + camera->directionX,
-                     camera->positionY + camera->directionY,
-                     camera->positionZ + camera->directionZ,
-                     camera->upX, camera->upY, camera->upZ);
-}
+        // Check if the corresponding number key (1 to 6) is being held
+        bool isLinkSelected = state[SDL_SCANCODE_1 + (i - 1)]; // SDL_SCANCODE_1 maps to '1'
 
-float calculateFPS(void)
-{
-
-    // Update the current time in seconds
-    currentTime = (double)clock() / CLOCKS_PER_SEC;
-
-    // Calculate FPS every second
-    if (currentTime - previousTime >= 1.0)
-    {
-        fps = (float)frameCount / (currentTime - previousTime);
-
-        // Reset for the next second
-        previousTime = currentTime;
-        frameCount = 0; // Reset frame count after calculating FPS
+        if (isLinkSelected) {
+            // Move the corresponding link with up/down arrows
+            if (state[SDL_SCANCODE_UP]) {
+                // Move link up (positive motion)
+                ucncUpdateMotionByName(assemblyName, 1.0f);  // Increase motion value
+            }
+            if (state[SDL_SCANCODE_DOWN]) {
+                // Move link down (negative motion)
+                ucncUpdateMotionByName(assemblyName, -1.0f);  // Decrease motion value
+            }
+        }
     }
 
-    return fps;
-}
 
+    // Forward/backward movement (Z-axis)d
+    if (state[SDL_SCANCODE_W]) {
+        // Move forward
+        globalCamera->positionX += globalCamera->directionX * 10.0f;
+        globalCamera->positionY += globalCamera->directionY * 10.0f;
+        globalCamera->positionZ += globalCamera->directionZ * 10.0f;
+    }
+    if (state[SDL_SCANCODE_S]) {
+        // Move backward
+        globalCamera->positionX -= globalCamera->directionX * 10.0f;
+        globalCamera->positionY -= globalCamera->directionY * 10.0f;
+        globalCamera->positionZ -= globalCamera->directionZ * 10.0f;
+    }
 
-// Function to render FPS and performance data
-void renderFPSData(int frameNumber, float fps)
-{
-    // Set up orthographic projection for 2D rendering
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
+    // Strafe left/right (X-axis)
+    if (state[SDL_SCANCODE_A]) {
+        // Strafe left
+        globalCamera->positionX -= globalCamera->upY * globalCamera->directionZ * 10.0f;
+        globalCamera->positionZ += globalCamera->upY * globalCamera->directionX * 10.0f;
+    }
+    if (state[SDL_SCANCODE_D]) {
+        // Strafe right
+        globalCamera->positionX += globalCamera->upY * globalCamera->directionZ * 10.0f;
+        globalCamera->positionZ -= globalCamera->upY * globalCamera->directionX * 10.0f;
+    }
 
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
+    // Move up/down (Y-axis)
+    if (state[SDL_SCANCODE_Q]) {
+        // Move up
+        globalCamera->positionZ += 10.0f;
+    }
+    if (state[SDL_SCANCODE_E]) {
+        // Move down
+        globalCamera->positionZ -= 10.0f;
+    }
 
-    // Set text size and color (assuming these are implemented elsewhere)
-    glTextSize(GL_TEXT_SIZE16x16);
-    unsigned int color = 0x00FFFFFF; // White color
-
-    // Prepare the text to display
-    char textBuffer[256];
-    snprintf(textBuffer, sizeof(textBuffer), "FRM: %d", frameNumber);
-    int x = 10; // Position from the left
-    int y = 10; // Position from the top
-    glDrawText((unsigned char *)textBuffer, x, y, color);
-
-    x = 10; // Position from the left
-    y = 30; // Position from the top
-    snprintf(textBuffer, sizeof(textBuffer), "FPS: %.1f", fps);
-    glDrawText((unsigned char *)textBuffer, x, y, color);
-
-    // Restore matrices
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
+    // After changing position, update the camera's matrix
+    update_camera_matrix(globalCamera);
 }
