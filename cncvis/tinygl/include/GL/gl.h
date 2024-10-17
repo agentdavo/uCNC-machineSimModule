@@ -852,9 +852,11 @@ void glRotatef(GLfloat angle, GLfloat x, GLfloat y, GLfloat z);
 void glTranslatef(GLfloat x, GLfloat y, GLfloat z);
 void glScalef(GLfloat x,GLfloat y,GLfloat z);
 
-void glViewport(GLint x,GLint y,GLint width,GLint height);
-void glFrustum(GLdouble left,GLdouble right,GLdouble bottom,GLdouble top,
-               GLdouble near,GLdouble far);
+void glViewport(GLint x, GLint y, GLint width, GLint height);
+void glFrustum(GLfloat left, GLfloat right, GLfloat bottom, GLfloat top,
+			   GLfloat nearv, GLfloat farv);
+void glOrtho(GLfloat left, GLfloat right, GLfloat bottom, GLfloat top,
+               GLfloat nearv, GLfloat farv);
 
 /* lists */
 GLuint glGenLists(GLint range);
@@ -994,7 +996,6 @@ inline void glLineWidth(GLfloat) {}
 inline void glDepthFunc(GLint) {}
 
 inline void glTexEnvf(GLint, GLint, GLint) {}
-inline void glOrtho(GLfloat,GLfloat,GLfloat,GLfloat,GLfloat,GLfloat){}
 inline void glVertex2i(GLint,GLint) {}
 inline void glDepthMask(GLint) {}
 inline void glFogi(GLint, GLint) {}

@@ -3,7 +3,7 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include "tinygl/include/GL/gl.h"
+#include "cncvis.h"
 
 // Camera structure definition
 typedef struct {
@@ -22,9 +22,15 @@ void ucncCameraApply(ucncCamera *camera);
 // Function to free the camera
 void ucncCameraFree(ucncCamera *camera);
 
+void gluPerspective(float fovY, float aspect, float zNear, float zFar);
+
 // Custom gluLookAt function for camera orientation and view matrix setup
-void gluLookAt_custom(GLfloat eyex, GLfloat eyey, GLfloat eyez, 
-                      GLfloat centerx, GLfloat centery, GLfloat centerz, 
-                      GLfloat upx, GLfloat upy, GLfloat upz);
+void gluLookAt_custom(float eyex, float eyey, float eyez,
+                      float centerx, float centery, float centerz,
+                      float upx, float upy, float upz);
+
+void printCameraDetails(ucncCamera *camera);
+
+void updateCameraOrbit(ucncCamera *camera, float radius, float elevation, float rotationSpeed);
 
 #endif // CAMERA_H

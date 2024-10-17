@@ -1,6 +1,6 @@
-# uCNC Machine Simulation
+# Machine Simulation
 
-This project is a simulation of a uCNC machine, which includes rendering assemblies, actors, and lights in a 3D scene. The simulation supports loading configurations from an XML file, using Mini-XML for parsing. The rendering is performed using TinyGL.
+This project is a simulation of a machine, which includes rendering assemblies, actors, and lights in a 3D scene. The simulation supports loading configurations from an XML file, using Mini-XML for parsing. The rendering is performed using TinyGL.
 
 ## Features
 

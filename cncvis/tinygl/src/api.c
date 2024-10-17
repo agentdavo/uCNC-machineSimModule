@@ -344,7 +344,7 @@ void glViewport(GLint x, GLint y, GLint width, GLint height) {
 	gl_add_op(p);
 }
 
-void glFrustum(GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble near, GLdouble farv) {
+void glFrustum(GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLfloat nearv, GLfloat farv) {
 	GLParam p[7];
 #include "error_check_no_context.h"
 	p[0].op = OP_Frustum;
@@ -352,7 +352,22 @@ void glFrustum(GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLd
 	p[2].f = right;
 	p[3].f = bottom;
 	p[4].f = top;
-	p[5].f = near;
+	p[5].f = nearv;
+	p[6].f = farv;
+
+	gl_add_op(p);
+}
+
+void glOrtho(GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLfloat nearv, GLfloat farv)
+{
+	GLParam p[7];
+#include "error_check_no_context.h"
+	p[0].op = OP_Ortho;
+	p[1].f = left;
+	p[2].f = right;
+	p[3].f = bottom;
+	p[4].f = top;
+	p[5].f = nearv;
 	p[6].f = farv;
 
 	gl_add_op(p);

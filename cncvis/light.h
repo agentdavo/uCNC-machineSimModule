@@ -3,7 +3,7 @@
 #ifndef LIGHT_H
 #define LIGHT_H
 
-#include "tinygl/include/GL/gl.h"
+#include "cncvis.h"
 
 typedef struct ucncLight {
     GLenum lightId;                          // OpenGL light ID (e.g., GL_LIGHT0)

@@ -3,7 +3,9 @@
 #ifndef ACTOR_H
 #define ACTOR_H
 
-#include "tinygl/include/GL/gl.h"
+#include "cncvis.h"
+
+#include "libstlio/include/stlio.h"
 
 #define MAX_NAME_LENGTH 64
 

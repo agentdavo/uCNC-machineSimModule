@@ -417,6 +417,7 @@ void gl_draw_triangle_line(GLVertex* p0, GLVertex* p1, GLVertex* p2);
 void gl_draw_triangle_fill(GLVertex* p0, GLVertex* p1, GLVertex* p2);	
 void gl_draw_triangle_select(GLVertex* p0, GLVertex* p1, GLVertex* p2); 
 void gl_draw_triangle_feedback(GLVertex* p0, GLVertex* p1, GLVertex* p2);
+
 /* matrix.c */
 void gl_print_matrix(const GLfloat* m);
 /*

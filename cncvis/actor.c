@@ -1,12 +1,6 @@
 /* actor.c */
 
 #include "actor.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "stlio.h"
-#include "stb/stb_image.h"
-#include "stb/stb_image_write.h"
 
 // Implementation of ucncActorNew, ucncActorRender, ucncActorFree
 
@@ -23,15 +17,22 @@ ucncActor* ucncActorNew(const char *name, const char *stlFile, float colorR, flo
         return NULL;
     }
 
-     // Buffer to store the full STL file path
+    // Buffer to store the full STL file path
     char fullPath[1024];
 
     // Construct the full path for the STL file
-    snprintf(fullPath, sizeof(fullPath), "%s/%s", configDir, stlFile);
+    int ret = snprintf(fullPath, sizeof(fullPath), "%s/%s", configDir, stlFile);
+    if (ret < 0 || ret >= sizeof(fullPath)) {
+        fprintf(stderr, "STL file path too long for actor '%s'.\n", name);
+        free(actor);
+        return NULL;
+    }
 
     printf("Loading STL file from: %s\n", fullPath);
 
+    // Initialize actor properties
     strncpy(actor->name, name, sizeof(actor->name) - 1);
+    actor->name[sizeof(actor->name) - 1] = '\0';  // Ensure null-termination
     actor->originX = actor->originY = actor->originZ = 0.0f;
     actor->positionX = actor->positionY = actor->positionZ = 0.0f;
     actor->rotationX = actor->rotationY = actor->rotationZ = 0.0f;
@@ -68,25 +69,27 @@ ucncActor* ucncActorNew(const char *name, const char *stlFile, float colorR, flo
         return NULL;
     }
 
-    actor->stlObject = buf.lpBuff;  // Store the loaded STL data buffer
+    // Store the loaded STL data buffer
+    actor->stlObject = buf.lpBuff;
     actor->triangleCount = dwTriCount;
     actor->stride = dwStride;
 
     return actor;
 }
 
+
 void ucncActorRender(ucncActor *actor) {
-    if (!actor || !actor->stlObject) return;
+    if (!actor || !actor->stlObject) {
+        fprintf(stderr, "Error: Actor or STL object is NULL.\n");
+        return;
+    }
 
-    glPushMatrix();  // Save the current matrix
-
-    // Apply actor's transformations (translation first, then rotation)
+    // Apply the actor's transformation
+    glPushMatrix();
     glTranslatef(actor->positionX, actor->positionY, actor->positionZ);
     glRotatef(actor->rotationX, 1.0f, 0.0f, 0.0f);
     glRotatef(actor->rotationY, 0.0f, 1.0f, 0.0f);
     glRotatef(actor->rotationZ, 0.0f, 0.0f, 1.0f);
-
-    // Optionally, move by the actor's origin (if needed)
     glTranslatef(actor->originX, actor->originY, actor->originZ);
 
     // Set material properties
@@ -95,10 +98,15 @@ void ucncActorRender(ucncActor *actor) {
     GLfloat matSpecular[] = { 0.3f, 0.3f, 0.3f, 1.0f };
     GLfloat matShininess[] = { 30.0f };
 
-    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, matAmbient);
-    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, matDiffuse);
-    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, matSpecular);
-    glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, matShininess);
+    glMaterialfv(GL_FRONT, GL_AMBIENT, matAmbient);  // Only setting for front faces
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, matDiffuse);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, matSpecular);
+    glMaterialfv(GL_FRONT, GL_SHININESS, matShininess);
+
+    // Logging actor rendering details (optional)
+    printf("Rendering actor: %s, Position: (%.2f, %.2f, %.2f), Rotation: (%.2f, %.2f, %.2f)\n",
+       actor->name, actor->positionX, actor->positionY, actor->positionZ,
+       actor->rotationX, actor->rotationY, actor->rotationZ);
 
     // Render triangles from the STL data
     glBegin(GL_TRIANGLES);
@@ -113,13 +121,14 @@ void ucncActorRender(ucncActor *actor) {
     }
     glEnd();
 
-    glPopMatrix();  // Restore the previous matrix
+    // Restore the previous matrix
+    glPopMatrix();
 }
 
 
 void ucncActorFree(ucncActor *actor) {
     if (actor) {
-        free(actor->stlObject);
+        free(actor->stlObject);  // Free the STL object buffer
         free(actor);
     }
 }

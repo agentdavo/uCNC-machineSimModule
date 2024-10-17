@@ -1,48 +1,47 @@
 /* assembly.c */
 
 #include "assembly.h"
-#include "actor.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-
-#include "tinygl/include/GL/gl.h"
 
 // Implementation of ucncAssemblyNew, ucncAssemblyAddActor, ucncAssemblyAddAssembly, ucncAssemblyRender, ucncAssemblyFree
 
-ucncAssembly* ucncAssemblyNew(const char *name, const char *parentName,
+ucncAssembly *ucncAssemblyNew(const char *name, const char *parentName,
                               float originX, float originY, float originZ,
                               float positionX, float positionY, float positionZ,
                               float rotationX, float rotationY, float rotationZ,
                               float homePositionX, float homePositionY, float homePositionZ,
                               float homeRotationX, float homeRotationY, float homeRotationZ,
                               float colorR, float colorG, float colorB,
-                              const char *motionType, char motionAxis, int invertMotion) {
-
+                              const char *motionType, char motionAxis, int invertMotion)
+{
+    // Allocate memory for the assembly
     ucncAssembly *assembly = malloc(sizeof(ucncAssembly));
-    if (!assembly) {
+    if (!assembly)
+    {
         fprintf(stderr, "Memory allocation failed for ucncAssembly '%s'.\n", name ? name : "unknown");
         return NULL;
     }
 
-    // Assign name if not NULL
-    if (name) {
-        strncpy(assembly->name, name, sizeof(assembly->name) - 1);
-        assembly->name[sizeof(assembly->name) - 1] = '\0';  // Null-terminate
-    } else {
-        fprintf(stderr, "Invalid assembly name (NULL).\n");
+    // Set the name (mandatory)
+    if (name && strlen(name) > 0)
+    {
+        snprintf(assembly->name, sizeof(assembly->name), "%s", name);
+    }
+    else
+    {
+        fprintf(stderr, "Invalid assembly name (NULL or empty).\n");
         free(assembly);
         return NULL;
     }
 
-    // Assign parentName, default to "NULL" if NULL
-    if (parentName) {
-        strncpy(assembly->parentName, parentName, sizeof(assembly->parentName) - 1);
-    } else {
-        strncpy(assembly->parentName, "NULL", sizeof(assembly->parentName) - 1);
+    // Set the parent name, defaulting to "NULL" if parentName is NULL
+    if (parentName && strlen(parentName) > 0)
+    {
+        snprintf(assembly->parentName, sizeof(assembly->parentName), "%s", parentName);
     }
-    assembly->parentName[sizeof(assembly->parentName) - 1] = '\0';  // Null-terminate
-
+    else
+    {
+        snprintf(assembly->parentName, sizeof(assembly->parentName), "NULL");
+    }
 
     // Set origin, position, rotation, and color
     assembly->originX = originX;
@@ -63,22 +62,25 @@ ucncAssembly* ucncAssemblyNew(const char *name, const char *parentName,
     assembly->homeRotationY = homeRotationY;
     assembly->homeRotationZ = homeRotationZ;
 
+    // Set color values
     assembly->colorR = colorR;
     assembly->colorG = colorG;
     assembly->colorB = colorB;
 
     // Initialize motion fields
-    if (motionType) {
-        strncpy(assembly->motionType, motionType, sizeof(assembly->motionType) - 1);
-        assembly->motionType[sizeof(assembly->motionType) - 1] = '\0';  // Null-terminate
-    } else {
-        strncpy(assembly->motionType, "none", sizeof(assembly->motionType) - 1);
-        assembly->motionType[sizeof(assembly->motionType) - 1] = '\0';  // Default to "none"
+    if (motionType && strlen(motionType) > 0)
+    {
+        snprintf(assembly->motionType, sizeof(assembly->motionType), "%s", motionType);
     }
+    else
+    {
+        snprintf(assembly->motionType, sizeof(assembly->motionType), "none"); // Default to "none"
+    }
+
     assembly->motionAxis = motionAxis;
     assembly->invertMotion = invertMotion;
 
-    // Initialize actor and assembly lists
+    // Initialize actor and assembly lists (empty arrays)
     assembly->actors = NULL;
     assembly->actorCount = 0;
     assembly->assemblies = NULL;
@@ -87,12 +89,9 @@ ucncAssembly* ucncAssemblyNew(const char *name, const char *parentName,
     return assembly;
 }
 
-int ucncAssemblyAddActor(ucncAssembly *assembly, ucncActor *actor) {
-    if (!assembly || !actor) {
-        fprintf(stderr, "Invalid parameters: assembly or actor is NULL.\n");
-        return 0; // Failure
-    }
 
+
+int ucncAssemblyAddActor(ucncAssembly *assembly, ucncActor *actor) {
     // Reallocate memory for the actor list
     ucncActor **temp = realloc(assembly->actors, (assembly->actorCount + 1) * sizeof(ucncActor*));
     if (!temp) {
@@ -103,29 +102,27 @@ int ucncAssemblyAddActor(ucncAssembly *assembly, ucncActor *actor) {
         return 0; // Failure
     }
 
-    // Update the actor list and increase the count
+    // Assign the newly allocated memory to the actors array
     assembly->actors = temp;
-    assembly->actors[assembly->actorCount] = actor;
-    assembly->actorCount++;
-
-    printf("Added actor '%s' to assembly '%s'.\n",
-           actor->name[0] ? actor->name : "(unknown actor)",
-           assembly->name[0] ? assembly->name : "(unknown assembly)");
+    assembly->actors[assembly->actorCount] = actor;  // Add the new actor
+    assembly->actorCount++;  // Increment the actor count
 
     return 1; // Success
 }
 
 
-
-int ucncAssemblyAddAssembly(ucncAssembly *parent, ucncAssembly *child) {
-    if (!parent || !child) {
+int ucncAssemblyAddAssembly(ucncAssembly *parent, ucncAssembly *child)
+{
+    if (!parent || !child)
+    {
         fprintf(stderr, "Invalid parameters: parent or child assembly is NULL.\n");
         return 0; // Failure
     }
 
     // Reallocate memory for the assembly list
-    ucncAssembly **temp = realloc(parent->assemblies, (parent->assemblyCount + 1) * sizeof(ucncAssembly*));
-    if (!temp) {
+    ucncAssembly **temp = realloc(parent->assemblies, (parent->assemblyCount + 1) * sizeof(ucncAssembly *));
+    if (!temp)
+    {
         // If realloc fails, output error message and return failure
         fprintf(stderr, "Reallocation failed when adding assembly '%s' to parent assembly '%s'.\n",
                 child->name[0] ? child->name : "(unknown child assembly)",
@@ -143,61 +140,64 @@ int ucncAssemblyAddAssembly(ucncAssembly *parent, ucncAssembly *child) {
     return 1; // Success
 }
 
+
 void ucncAssemblyRender(const ucncAssembly *assembly) {
-    if (!assembly) return;
 
     glPushMatrix(); // Save the current transformation matrix
 
-    // Apply the assembly's transformations
-    glTranslatef(assembly->positionX, assembly->positionY, assembly->positionZ);  // Move to assembly position
+    // Apply assembly transformations
+    // Translate to the assembly position in world space
+    glTranslatef(assembly->positionX, assembly->positionY, assembly->positionZ);
 
-    // Apply the origin transformation and rotations
+    // Translate to the origin, then apply rotations
     glTranslatef(assembly->originX, assembly->originY, assembly->originZ);
-    glRotatef(assembly->rotationX, 1.0f, 0.0f, 0.0f);
-    glRotatef(assembly->rotationY, 0.0f, 1.0f, 0.0f);
-    glRotatef(assembly->rotationZ, 0.0f, 0.0f, 1.0f);
+    glRotatef(assembly->rotationX, 1.0f, 0.0f, 0.0f); // X-axis rotation
+    glRotatef(assembly->rotationY, 0.0f, 1.0f, 0.0f); // Y-axis rotation
+    glRotatef(assembly->rotationZ, 0.0f, 0.0f, 1.0f); // Z-axis rotation
 
-    // Move back by origin after rotation (inverted)
+    // Translate back by the origin (undo translation)
     glTranslatef(-assembly->originX, -assembly->originY, -assembly->originZ);
+
+    // Debugging output: Print assembly details
+    printf("Rendering assembly: %s at position (%.2f, %.2f, %.2f) with rotation (%.2f, %.2f, %.2f)\n",
+           assembly->name, assembly->positionX, assembly->positionY, assembly->positionZ,
+           assembly->rotationX, assembly->rotationY, assembly->rotationZ);
 
     // Render all actors in this assembly
     for (int i = 0; i < assembly->actorCount; i++) {
         ucncActorRender(assembly->actors[i]);
     }
 
-    // Draw local axes for this assembly (optional)
-    extern void drawAxis(float size);
-    drawAxis(500.0f); // Adjust the scale as needed
-
     // Render all child assemblies recursively
     for (int i = 0; i < assembly->assemblyCount; i++) {
         ucncAssemblyRender(assembly->assemblies[i]);
     }
 
-    // Log assembly rendering details (for debugging)
-    printf("Rendering assembly: %s at position (%.2f, %.2f, %.2f) with rotation (%.2f, %.2f, %.2f)\n",
-           assembly->name, assembly->positionX, assembly->positionY, assembly->positionZ,
-           assembly->rotationX, assembly->rotationY, assembly->rotationZ);
-
     glPopMatrix(); // Restore the previous transformation matrix
 }
 
 
-ucncAssembly* findAssemblyByName(ucncAssembly *rootAssembly, const char *name) {
-    if (!rootAssembly || !name) return NULL;
+
+ucncAssembly *findAssemblyByName(ucncAssembly *rootAssembly, const char *name)
+{
+    if (!rootAssembly || !name)
+        return NULL;
 
     // printf("Checking assembly: %s\n", rootAssembly->name);
 
     // Check if the root assembly's name matches
-    if (strcmp(rootAssembly->name, name) == 0) {
+    if (strcmp(rootAssembly->name, name) == 0)
+    {
         printf("Found assembly: %s\n", rootAssembly->name);
         return rootAssembly;
     }
 
     // Recursively search child assemblies
-    for (int i = 0; i < rootAssembly->assemblyCount; i++) {
+    for (int i = 0; i < rootAssembly->assemblyCount; i++)
+    {
         ucncAssembly *found = findAssemblyByName(rootAssembly->assemblies[i], name);
-        if (found) {
+        if (found)
+        {
             return found;
         }
     }
@@ -205,20 +205,26 @@ ucncAssembly* findAssemblyByName(ucncAssembly *rootAssembly, const char *name) {
     return NULL; // Return NULL if not found
 }
 
-void ucncAssemblyFree(ucncAssembly *assembly) {
-    if (!assembly) return;
+void ucncAssemblyFree(ucncAssembly *assembly)
+{
+    if (!assembly)
+        return;
 
     // Free all actors
-    for (int i = 0; i < assembly->actorCount; i++) {
-        if (assembly->actors[i]) {
+    for (int i = 0; i < assembly->actorCount; i++)
+    {
+        if (assembly->actors[i])
+        {
             ucncActorFree(assembly->actors[i]); // Ensure actors are freed properly
         }
     }
     free(assembly->actors); // Free the array of actor pointers
 
     // Recursively free child assemblies
-    for (int i = 0; i < assembly->assemblyCount; i++) {
-        if (assembly->assemblies[i]) {
+    for (int i = 0; i < assembly->assemblyCount; i++)
+    {
+        if (assembly->assemblies[i])
+        {
             ucncAssemblyFree(assembly->assemblies[i]); // Recursive call to free child assemblies
         }
     }

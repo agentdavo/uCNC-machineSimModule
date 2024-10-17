@@ -1,16 +1,7 @@
 #include "config.h"
-#include "actor.h"
-#include "light.h"
-#include "assembly.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <mxml.h>
 
 int loadConfiguration(const char *filename, ucncAssembly **rootAssembly, ucncLight ***lights, int *lightCount)
 {
-
     FILE *file = fopen(filename, "r");
     if (!file)
     {
@@ -18,24 +9,22 @@ int loadConfiguration(const char *filename, ucncAssembly **rootAssembly, ucncLig
         return 0;
     }
 
-    // Pass the FILE* (file) as the third argument to mxmlLoadFile instead of NULL
+    // Load the XML tree from the file
     mxml_node_t *tree = mxmlLoadFile(NULL, NULL, file);
     fclose(file);
-
     if (!tree)
     {
-        fprintf(stderr, "Failed to parse XML configuration file '%s'.\n", filename);
+        fprintf(stderr, "Failed to parse XML configuration file.\n");
         return 0;
     }
-
-    char configDir[1024];
-    getDirectoryFromPath(filename, configDir);
 
     // Temporary storage for assemblies and lights
     ucncAssembly **assemblies = NULL;
     int assemblyCount = 0;
     ucncLight **loadedLights = NULL;
     int loadedLightCount = 0;
+    char configDir[1024];
+    getDirectoryFromPath(filename, configDir);
 
     // Process the assemblies
     mxml_node_t *assembliesNode = mxmlFindElement(tree, tree, "assemblies", NULL, NULL, MXML_DESCEND_ALL);
@@ -45,84 +34,65 @@ int loadConfiguration(const char *filename, ucncAssembly **rootAssembly, ucncLig
              assemblyNode;
              assemblyNode = mxmlFindElement(assemblyNode, assembliesNode, "assembly", NULL, NULL, MXML_DESCEND_ALL))
         {
-
             const char *name = mxmlElementGetAttr(assemblyNode, "name");
             const char *parentName = mxmlElementGetAttr(assemblyNode, "parent");
 
             // Origin
-            mxml_node_t *originNode = mxmlFindElement(assemblyNode, assemblyNode, "origin", NULL, NULL, MXML_DESCEND_ALL);
             float originX = 0.0f, originY = 0.0f, originZ = 0.0f;
+            mxml_node_t *originNode = mxmlFindElement(assemblyNode, assemblyNode, "origin", NULL, NULL, MXML_DESCEND_ALL);
             if (originNode)
             {
                 originX = atof(mxmlElementGetAttr(originNode, "x"));
                 originY = atof(mxmlElementGetAttr(originNode, "y"));
                 originZ = atof(mxmlElementGetAttr(originNode, "z"));
             }
-            else
-            {
-                fprintf(stderr, "Missing origin for assembly '%s'. Using default values.\n", name);
-            }
 
             // Position
-            mxml_node_t *positionNode = mxmlFindElement(assemblyNode, assemblyNode, "position", NULL, NULL, MXML_DESCEND_ALL);
             float positionX = 0.0f, positionY = 0.0f, positionZ = 0.0f;
+            mxml_node_t *positionNode = mxmlFindElement(assemblyNode, assemblyNode, "position", NULL, NULL, MXML_DESCEND_ALL);
             if (positionNode)
             {
                 positionX = atof(mxmlElementGetAttr(positionNode, "x"));
                 positionY = atof(mxmlElementGetAttr(positionNode, "y"));
                 positionZ = atof(mxmlElementGetAttr(positionNode, "z"));
             }
-            else
-            {
-                fprintf(stderr, "Missing position for assembly '%s'. Using default values.\n", name);
-            }
 
             // Rotation
-            mxml_node_t *rotationNode = mxmlFindElement(assemblyNode, assemblyNode, "rotation", NULL, NULL, MXML_DESCEND_ALL);
             float rotationX = 0.0f, rotationY = 0.0f, rotationZ = 0.0f;
+            mxml_node_t *rotationNode = mxmlFindElement(assemblyNode, assemblyNode, "rotation", NULL, NULL, MXML_DESCEND_ALL);
             if (rotationNode)
             {
                 rotationX = atof(mxmlElementGetAttr(rotationNode, "x"));
                 rotationY = atof(mxmlElementGetAttr(rotationNode, "y"));
                 rotationZ = atof(mxmlElementGetAttr(rotationNode, "z"));
             }
-            else
-            {
-                fprintf(stderr, "Missing rotation for assembly '%s'. Using default values.\n", name);
-            }
 
             // Color
-            mxml_node_t *colorNode = mxmlFindElement(assemblyNode, assemblyNode, "color", NULL, NULL, MXML_DESCEND_ALL);
             float colorR = 1.0f, colorG = 1.0f, colorB = 1.0f;
+            mxml_node_t *colorNode = mxmlFindElement(assemblyNode, assemblyNode, "color", NULL, NULL, MXML_DESCEND_ALL);
             if (colorNode)
             {
                 colorR = atof(mxmlElementGetAttr(colorNode, "r"));
                 colorG = atof(mxmlElementGetAttr(colorNode, "g"));
                 colorB = atof(mxmlElementGetAttr(colorNode, "b"));
             }
-            else
-            {
-                fprintf(stderr, "Missing color for assembly '%s'. Using default values.\n", name);
-            }
 
-            // Motion
-            char *motionType = NULL;
+            // Motion Type, Axis, and Invert Motion
+            const char *motionType = MOTION_TYPE_NONE; // Default to none
             char motionAxis = ' ';
             int invertMotion = 0;
             mxml_node_t *motionNode = mxmlFindElement(assemblyNode, assemblyNode, "motion", NULL, NULL, MXML_DESCEND_ALL);
             if (motionNode)
             {
-                motionType = strdup(mxmlElementGetAttr(motionNode, "type"));
+                motionType = mxmlElementGetAttr(motionNode, "type");
                 const char *axisStr = mxmlElementGetAttr(motionNode, "axis");
-                motionAxis = axisStr ? axisStr[0] : ' '; // X, Y, Z axis
-
+                if (axisStr)
+                    motionAxis = axisStr[0];
                 const char *invertStr = mxmlElementGetAttr(motionNode, "invert");
-                invertMotion = (invertStr && strcmp(invertStr, "yes") == 0) ? 1 : 0;
-            }
-            else
-            {
-                motionType = strdup("none");
-                fprintf(stderr, "Motion not specified for assembly '%s'. Using default 'none'.\n", name);
+                if (invertStr && strcmp(invertStr, "yes") == 0)
+                {
+                    invertMotion = 1;
+                }
             }
 
             // Home position and rotation
@@ -146,32 +116,30 @@ int loadConfiguration(const char *filename, ucncAssembly **rootAssembly, ucncLig
                     homeRotationZ = atof(mxmlElementGetAttr(homeRotationNode, "z"));
                 }
             }
-            else
-            {
-                fprintf(stderr, "Home not specified for assembly '%s'. Using default 'none'.\n", name);
-            }
 
+            // Create the assembly object
             ucncAssembly *assembly = ucncAssemblyNew(
-                name,
-                strcmp(parentName, "NULL") == 0 ? NULL : parentName,
-                originX, originY, originZ,
-                positionX, positionY, positionZ,
+                name, parentName,
+                originX, originY, originZ, positionX, positionY, positionZ,
                 rotationX, rotationY, rotationZ,
                 homePositionX, homePositionY, homePositionZ,
                 homeRotationX, homeRotationY, homeRotationZ,
                 colorR, colorG, colorB,
                 motionType, motionAxis, invertMotion);
 
-            free(motionType); // Free strdup'd motionType
-
             if (assembly)
             {
+                // Reallocation with error checking
                 ucncAssembly **temp = realloc(assemblies, (assemblyCount + 1) * sizeof(ucncAssembly *));
                 if (!temp)
                 {
                     fprintf(stderr, "Reallocation failed for assemblies.\n");
                     ucncAssemblyFree(assembly);
-                    cleanupAssemblies(assemblies, assemblyCount);
+                    for (int i = 0; i < assemblyCount; i++)
+                    {
+                        ucncAssemblyFree(assemblies[i]);
+                    }
+                    free(assemblies);
                     mxmlDelete(tree);
                     return 0;
                 }
@@ -182,7 +150,7 @@ int loadConfiguration(const char *filename, ucncAssembly **rootAssembly, ucncLig
         }
     }
 
-    // Process the actors
+    // Process actors
     mxml_node_t *actorsNode = mxmlFindElement(tree, tree, "actors", NULL, NULL, MXML_DESCEND_ALL);
     if (actorsNode)
     {
@@ -190,14 +158,20 @@ int loadConfiguration(const char *filename, ucncAssembly **rootAssembly, ucncLig
              actorNode;
              actorNode = mxmlFindElement(actorNode, actorsNode, "actor", NULL, NULL, MXML_DESCEND_ALL))
         {
-
+            // Get the name, assembly, and STL file for the actor
             const char *name = mxmlElementGetAttr(actorNode, "name");
             const char *assemblyName = mxmlElementGetAttr(actorNode, "assembly");
             const char *stlFile = mxmlElementGetAttr(actorNode, "stlFile");
 
-            // Color
-            mxml_node_t *colorNode = mxmlFindElement(actorNode, actorNode, "color", NULL, NULL, MXML_DESCEND_ALL);
+            if (!name || !assemblyName || !stlFile)
+            {
+                fprintf(stderr, "Missing attribute (name, assembly, or stlFile) in actor.\n");
+                continue;
+            }
+
+            // Process color
             float colorR = 1.0f, colorG = 1.0f, colorB = 1.0f;
+            mxml_node_t *colorNode = mxmlFindElement(actorNode, actorNode, "color", NULL, NULL, MXML_DESCEND_ALL);
             if (colorNode)
             {
                 colorR = atof(mxmlElementGetAttr(colorNode, "r"));
@@ -205,6 +179,7 @@ int loadConfiguration(const char *filename, ucncAssembly **rootAssembly, ucncLig
                 colorB = atof(mxmlElementGetAttr(colorNode, "b"));
             }
 
+            // Create a new actor object
             ucncActor *actor = ucncActorNew(name, stlFile, colorR, colorG, colorB, configDir);
             if (!actor)
             {
@@ -212,7 +187,7 @@ int loadConfiguration(const char *filename, ucncAssembly **rootAssembly, ucncLig
                 continue;
             }
 
-            // Find the parent assembly
+            // Find the parent assembly by name
             ucncAssembly *parentAssembly = NULL;
             for (int i = 0; i < assemblyCount; i++)
             {
@@ -230,6 +205,7 @@ int loadConfiguration(const char *filename, ucncAssembly **rootAssembly, ucncLig
                 continue;
             }
 
+            // Add actor to the parent assembly
             if (!ucncAssemblyAddActor(parentAssembly, actor))
             {
                 fprintf(stderr, "Failed to add actor '%s' to assembly '%s'.\n", name, assemblyName);
@@ -239,7 +215,7 @@ int loadConfiguration(const char *filename, ucncAssembly **rootAssembly, ucncLig
         }
     }
 
-    // Process the lights
+    // Process lights
     mxml_node_t *lightsNode = mxmlFindElement(tree, tree, "lights", NULL, NULL, MXML_DESCEND_ALL);
     if (lightsNode)
     {
@@ -247,74 +223,48 @@ int loadConfiguration(const char *filename, ucncAssembly **rootAssembly, ucncLig
              lightNode;
              lightNode = mxmlFindElement(lightNode, lightsNode, "light", NULL, NULL, MXML_DESCEND_ALL))
         {
-            // Read light ID (GL_LIGHT0, GL_LIGHT1, etc.)
             const char *lightID_str = mxmlElementGetAttr(lightNode, "id");
-            if (!lightID_str)
-            {
-                fprintf(stderr, "Light missing 'id' attribute.\n");
-                continue;
-            }
-
             float posX = atof(mxmlElementGetAttr(lightNode, "x"));
             float posY = atof(mxmlElementGetAttr(lightNode, "y"));
             float posZ = atof(mxmlElementGetAttr(lightNode, "z"));
 
-            // Process Ambient
+            // Ambient
             mxml_node_t *ambientNode = mxmlFindElement(lightNode, lightNode, "ambient", NULL, NULL, MXML_DESCEND_ALL);
-            float ambientR = 0.0f, ambientG = 0.0f, ambientB = 0.0f; // Defaults to no ambient
-            if (ambientNode)
-            {
-                ambientR = atof(mxmlElementGetAttr(ambientNode, "r"));
-                ambientG = atof(mxmlElementGetAttr(ambientNode, "g"));
-                ambientB = atof(mxmlElementGetAttr(ambientNode, "b"));
-            }
-            else
-            {
-                fprintf(stderr, "Ambient light data missing for light ID: %s. Using default ambient values.\n", lightID_str);
-            }
+            float ambientR = atof(mxmlElementGetAttr(ambientNode, "r"));
+            float ambientG = atof(mxmlElementGetAttr(ambientNode, "g"));
+            float ambientB = atof(mxmlElementGetAttr(ambientNode, "b"));
 
-            // Process Diffuse
+            // Diffuse
             mxml_node_t *diffuseNode = mxmlFindElement(lightNode, lightNode, "diffuse", NULL, NULL, MXML_DESCEND_ALL);
-            float diffuseR = 1.0f, diffuseG = 1.0f, diffuseB = 1.0f; // Defaults to white light
-            if (diffuseNode)
-            {
-                diffuseR = atof(mxmlElementGetAttr(diffuseNode, "r"));
-                diffuseG = atof(mxmlElementGetAttr(diffuseNode, "g"));
-                diffuseB = atof(mxmlElementGetAttr(diffuseNode, "b"));
-            }
-            else
-            {
-                fprintf(stderr, "Diffuse light data missing for light ID: %s. Using default diffuse values.\n", lightID_str);
-            }
+            float diffuseR = atof(mxmlElementGetAttr(diffuseNode, "r"));
+            float diffuseG = atof(mxmlElementGetAttr(diffuseNode, "g"));
+            float diffuseB = atof(mxmlElementGetAttr(diffuseNode, "b"));
 
-            // Process Specular
+            // Specular
             mxml_node_t *specularNode = mxmlFindElement(lightNode, lightNode, "specular", NULL, NULL, MXML_DESCEND_ALL);
-            float specularR = 1.0f, specularG = 1.0f, specularB = 1.0f; // Defaults to white specular
-            if (specularNode)
-            {
-                specularR = atof(mxmlElementGetAttr(specularNode, "r"));
-                specularG = atof(mxmlElementGetAttr(specularNode, "g"));
-                specularB = atof(mxmlElementGetAttr(specularNode, "b"));
-            }
+            float specularR = atof(mxmlElementGetAttr(specularNode, "r"));
+            float specularG = atof(mxmlElementGetAttr(specularNode, "g"));
+            float specularB = atof(mxmlElementGetAttr(specularNode, "b"));
+
+            GLenum lightID;
+            if (strcmp(lightID_str, "GL_LIGHT0") == 0)
+                lightID = GL_LIGHT0;
+            else if (strcmp(lightID_str, "GL_LIGHT1") == 0)
+                lightID = GL_LIGHT1;
             else
             {
-                fprintf(stderr, "Specular light data missing for light ID: %s. Using default specular values.\n", lightID_str);
-            }
-
-            // Convert lightID_str to GLenum (GL_LIGHT0, GL_LIGHT1, etc.)
-            GLenum lightID;
-            if (strcmp(lightID_str, "GL_LIGHT0") == 0) lightID = GL_LIGHT0;
-            else if (strcmp(lightID_str, "GL_LIGHT1") == 0) lightID = GL_LIGHT1;
-            else {
                 fprintf(stderr, "Unknown light ID '%s'.\n", lightID_str);
                 continue;
             }
 
-            // Create and store the light
+            // Create light object
             ucncLight *light = ucncLightNew(lightID, posX, posY, posZ, ambientR, ambientG, ambientB, diffuseR, diffuseG, diffuseB, specularR, specularG, specularB);
-            if (light) {
-                ucncLight **temp = realloc(loadedLights, (loadedLightCount + 1) * sizeof(ucncLight*));
-                if (!temp) {
+            if (light)
+            {
+                // Reallocation for lights
+                ucncLight **temp = realloc(loadedLights, (loadedLightCount + 1) * sizeof(ucncLight *));
+                if (!temp)
+                {
                     fprintf(stderr, "Reallocation failed for lights.\n");
                     ucncLightFree(light);
                     freeAllLights(loadedLights, loadedLightCount);
@@ -333,6 +283,23 @@ int loadConfiguration(const char *filename, ucncAssembly **rootAssembly, ucncLig
     *lightCount = loadedLightCount;
 
     // Assign root assembly and link child-parent relationships
+    if (*rootAssembly == NULL)
+    {
+        // Create the default root assembly if no root is found
+        *rootAssembly = ucncAssemblyNew(
+            "root", NULL,
+            0.0f, 0.0f, 0.0f, // Default origin
+            0.0f, 0.0f, 0.0f, // Default position
+            0.0f, 0.0f, 0.0f, // Default rotation
+            0.0f, 0.0f, 0.0f, // Home position
+            0.0f, 0.0f, 0.0f, // Home rotation
+            1.0f, 1.0f, 1.0f, // Default white color
+            "none",           // No motion
+            ' ',              // No motion axis
+            0                 // No inverted motion
+        );
+    }
+
     for (int i = 0; i < assemblyCount; i++)
     {
         ucncAssembly *current = assemblies[i];
@@ -355,7 +322,7 @@ int loadConfiguration(const char *filename, ucncAssembly **rootAssembly, ucncLig
 
     if (*rootAssembly == NULL)
     {
-        fprintf(stderr, "No root assembly found.\n");
+        fprintf(stderr, "No root assembly found or created.\n");
         freeAllLights(loadedLights, loadedLightCount);
         for (int i = 0; i < assemblyCount; i++)
         {

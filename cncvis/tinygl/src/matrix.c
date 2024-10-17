@@ -231,44 +231,65 @@ void glopTranslate(GLParam* p) {
 	gl_matrix_update();
 }
 
-void glopFrustum(GLParam* p) {
+void glopFrustum(GLParam *p)
+{
+  GLContext* c = gl_get_context();
+  GLfloat *r;
+  M4 m;
+  GLfloat left=p[1].f;
+  GLfloat right=p[2].f;
+  GLfloat bottom=p[3].f;
+  GLfloat top=p[4].f;
+  GLfloat nearv=p[5].f;
+  GLfloat farp=p[6].f;
+  GLfloat x,y,A,B,C,D;
+
+  x = (2.0*nearv) / (right-left);
+  y = (2.0*nearv) / (top-bottom);
+  A = (right+left) / (right-left);
+  B = (top+bottom) / (top-bottom);
+  C = -(farp+nearv) / ( farp-nearv);
+  D = -(2.0*farp*nearv) / (farp-nearv);
+
+  r=&m.m[0][0];
+  r[0]= x; r[1]=0; r[2]=A; r[3]=0;
+  r[4]= 0; r[5]=y; r[6]=B; r[7]=0;
+  r[8]= 0; r[9]=0; r[10]=C; r[11]=D;
+  r[12]= 0; r[13]=0; r[14]=-1; r[15]=0;
+
+  gl_M4_MulLeft(c->matrix_stack_ptr[c->matrix_mode],&m);
+
+  gl_matrix_update(c);
+}
+
+/* thanks mesa */
+void glopOrtho(GLParam *p)
+{
 	GLContext* c = gl_get_context();
-	GLfloat* r;
-	M4 m;
 	GLfloat left = p[1].f;
 	GLfloat right = p[2].f;
 	GLfloat bottom = p[3].f;
 	GLfloat top = p[4].f;
-	GLfloat near = p[5].f;
-	GLfloat farp = p[6].f;
-	GLfloat x, y, A, B, C, D;
+	GLfloat nearv = p[5].f;
+	GLfloat farv = p[6].f;
+	GLfloat x, y, z;
+	GLfloat tx, ty, tz;
+	GLfloat m[16];
 
-	x = (2.0 * near) / (right - left);
-	y = (2.0 * near) / (top - bottom);
-	A = (right + left) / (right - left);
-	B = (top + bottom) / (top - bottom);
-	C = -(farp + near) / (farp - near);
-	D = -(2.0 * farp * near) / (farp - near);
+	x = 2.0 / (right-left);
+	y = 2.0 / (top-bottom);
+	z = -2.0 / (farv-nearv);
+	tx = -(right+left) / (right-left);
+	ty = -(top+bottom) / (top-bottom);
+	tz = -(farv+nearv) / (farv-nearv);
 
-	r = &m.m[0][0];
-	r[0] = x;
-	r[1] = 0;
-	r[2] = A;
-	r[3] = 0;
-	r[4] = 0;
-	r[5] = y;
-	r[6] = B;
-	r[7] = 0;
-	r[8] = 0;
-	r[9] = 0;
-	r[10] = C;
-	r[11] = D;
-	r[12] = 0;
-	r[13] = 0;
-	r[14] = -1;
-	r[15] = 0;
+	#define M(row,col)  m[col*4+row]
+		M(0,0) = x;     M(0,1) = 0.0F;  M(0,2) = 0.0F;  M(0,3) = tx;
+		M(1,0) = 0.0F;  M(1,1) = y;     M(1,2) = 0.0F;  M(1,3) = ty;
+		M(2,0) = 0.0F;  M(2,1) = 0.0F;  M(2,2) = z;     M(2,3) = tz;
+		M(3,0) = 0.0F;  M(3,1) = 0.0F;  M(3,2) = 0.0F;  M(3,3) = 1.0F;
+	#undef M
 
-	gl_M4_MulLeft(c->matrix_stack_ptr[c->matrix_mode], &m);
-
-	gl_matrix_update();
+	gl_M4_MulLeft(c->matrix_stack_ptr[c->matrix_mode], (M4 *)m);
+	gl_matrix_update(c);
 }

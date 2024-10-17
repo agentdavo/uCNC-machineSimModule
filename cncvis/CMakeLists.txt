@@ -63,7 +63,7 @@ target_link_libraries(cncvis PRIVATE
     tinygl
     stlio
     stb
-    mxml_static  # Use mxml_static instead of mxml
+    mxml_static # Use mxml_static instead of mxml
     m  # Link against the math library
 )
 

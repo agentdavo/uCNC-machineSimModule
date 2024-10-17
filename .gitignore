@@ -3,3 +3,6 @@
 /build
 /cncvis/mxml/build
 /bin
+cncvis/build
+*.a
+*Zone.Identifier

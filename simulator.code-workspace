@@ -33,7 +33,12 @@
             "pthread.h": "c",
             "ios": "c",
             "lv_demos.h": "c",
-            "unistd.h": "c"
+            "unistd.h": "c",
+            "assembly.h": "c",
+            "utils.h": "c",
+            "string.h": "c",
+            "time.h": "c",
+            "light.h": "c"
         }
     },
     // tasks.json section
@@ -99,7 +104,18 @@
                 "windows": {
                     "MIMode": "gdb",
                     "miDebuggerPath": "C:\\MinGw\\bin\\gdb.exe"
-                }
+                },
+                "setupCommands": [
+                    {
+                      "description": "Enable pretty-printing for gdb",
+                      "text": "-enable-pretty-printing",
+                      "ignoreFailures": true
+                    },
+                    {
+                      "description": "Ignore stepping into system libraries",
+                      "text": "set auto-load-scripts off"
+                    }
+                ]
             },
             {
                 "name": "Debug LVGL demo with LLVM",

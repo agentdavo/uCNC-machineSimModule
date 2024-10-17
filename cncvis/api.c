@@ -1,23 +1,4 @@
 #include "api.h"
-#include "camera.h"
-#include "config.h"
-#include "utils.h"
-#include "light.h"
-#include <stdio.h>
-#include <string.h>
-
-#include "tinygl/include/zbuffer.h"
-
-#define MOTION_TYPE_ROTATIONAL "rotational"
-#define MOTION_TYPE_LINEAR "linear"
-#define MOTION_TYPE_NONE "none"
-#define AXIS_X 'X'
-#define AXIS_Y 'Y'
-#define AXIS_Z 'Z'
-
-#ifndef M_PI
-#define M_PI 3.14159265
-#endif
 
 // Motion handling function by assembly name
 void ucncUpdateMotionByName(const char *assemblyName, float value)
@@ -96,8 +77,10 @@ void ucncSetAllAssembliesToHome(ucncAssembly *assembly)
     if (!assembly)
         return;
 
-    if (strcmp(assembly->motionType, MOTION_TYPE_NONE) != 0)
+    // Check if motionType is not null before comparing
+    if (assembly->motionType && strcmp(assembly->motionType, MOTION_TYPE_NONE) != 0)
     {
+        // Set assembly's position and rotation to its home position
         assembly->positionX = assembly->homePositionX;
         assembly->positionY = assembly->homePositionY;
         assembly->positionZ = assembly->homePositionZ;
@@ -105,9 +88,13 @@ void ucncSetAllAssembliesToHome(ucncAssembly *assembly)
         assembly->rotationY = assembly->homeRotationY;
         assembly->rotationZ = assembly->homeRotationZ;
 
-        printf("Assembly '%s' set to home position and rotation.\n", assembly->name);
+        printf("Assembly '%s' set to home position (%.2f, %.2f, %.2f) and rotation (%.2f, %.2f, %.2f).\n",
+               assembly->name,
+               assembly->homePositionX, assembly->homePositionY, assembly->homePositionZ,
+               assembly->homeRotationX, assembly->homeRotationY, assembly->homeRotationZ);
     }
 
+    // Recursively set all child assemblies to their home positions
     for (int i = 0; i < assembly->assemblyCount; i++)
     {
         ucncSetAllAssembliesToHome(assembly->assemblies[i]);
@@ -151,7 +138,6 @@ const float *ucncGetZBufferOutput(void)
     return (const float *)globalFramebuffer->zbuf;
 }
 
-// Signal frame readiness
 void ucncFrameReady(ZBuffer *framebuffer)
 {
     if (!framebuffer)
@@ -163,49 +149,68 @@ void ucncFrameReady(ZBuffer *framebuffer)
     // Implement any processing, e.g., saving frame, signaling display.
 }
 
-int cncvis_init(ZBuffer *frameBuffer)
+int cncvis_init()
 {
+    // Initialize the camera and Y axis as up
+    globalCamera = ucncCameraNew(500.0f, 500.0f, 500.0f, 0.0f, 0.0f, 1.0f);
 
     // Initialize TinyGL with the provided framebuffer
-    glInit(frameBuffer);
+    glInit(globalFramebuffer);
+
+    // Clear the color and depth buffers before rendering
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // Enable depth testing and lighting for the scene
     glEnable(GL_DEPTH_TEST);
-    glClearDepth(1.0f);
 
-    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
+    // Set up lighting properties for GL_LIGHT0 to simulate distant sunlight
+    GLfloat light_position[] = {1000.0, 1000.0, 1000.0, 0.0}; // Directional light pointing from above and to the right
+    GLfloat light_ambient[] = {0.1, 0.1, 0.1, 1.0};  // Very soft ambient lighting
+    GLfloat light_diffuse[] = {1.0, 1.0, 1.0, 1.0};  // Full white diffuse lighting
+    GLfloat light_specular[] = {1.0, 1.0, 1.0, 1.0}; // Full white specular highlights
+    glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+    glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
 
-    glViewport(0, 0, frameBuffer->xsize, frameBuffer->ysize);
+    // Enable lighting for the scene
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+
+    // Enable color material to apply colors from the actor to materials
+    glEnable(GL_COLOR_MATERIAL);
+    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+
+    // Set smooth shading model for better lighting effects
     glShadeModel(GL_SMOOTH);
 
-    // Enable lighting
-    glEnable(GL_LIGHTING);
-
-    // Setup projection and modelview matrices
-    GLfloat h = (GLfloat)frameBuffer->ysize / (GLfloat)frameBuffer->xsize;
+    // ------------------------------
+    // Set up 3D projection for the scene
+    // ------------------------------
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glFrustum(-1.0, 1.0, -h, h, 1.0, 1500.0);
+    // Correct aspect ratio calculation for the framebuffer
+    GLfloat aspectRatio = (GLfloat)globalFramebuffer->xsize / (GLfloat)globalFramebuffer->ysize;
+    gluPerspective(90.0f, aspectRatio, 1.0f, 5000.0f); // FOV, aspect ratio, near, far planes
+
+    // Switch to modelview matrix for placing objects in the 3D scene
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    // Rotate to align axes (Z+ up, X+ right, Y+ into the screen)
-    glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+    // Use the custom gluLookAt function to position the camera
+    gluLookAt_custom(globalCamera->positionX, globalCamera->positionY, globalCamera->positionZ,
+                     0.0f, 0.0f, 0.0f,                                         // Looking at the origin
+                     globalCamera->upX, globalCamera->upY, globalCamera->upZ); // Y-axis is up
 
-    globalCamera = ucncCameraNew(0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f); // Y is up
-    ucncCameraApply(globalCamera);          // Pointing to the origin
+    // ------------------------------
+    // Render the 3D scene (assemblies, actors, etc.)
+    // ------------------------------
+    drawAxis(500.0f); // Draw a reference axis
 
-    for (int i = 0; i < globalLightCount; i++)
-    {
-        printf("Adding light %d\n", i);
-        ucncLightAdd(globalLights[i]);
-    }
-
-    // Restore matrices
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
+    // Ensure OpenGL commands are executed
     glFlush();
 
+    // Return success
     return EXIT_SUCCESS;
 }
 

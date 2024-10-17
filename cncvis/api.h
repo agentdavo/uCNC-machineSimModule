@@ -1,14 +1,18 @@
 #ifndef API_H
 #define API_H
 
-#include "tinygl/include/zbuffer.h"
 #include "assembly.h"
+#include "actor.h"
 #include "camera.h"
-#include "config.h"
+#include "light.h"
 #include "utils.h"
+#include "config.h"
 
 extern ZBuffer *globalFramebuffer;
+extern ucncAssembly *globalScene;
 extern ucncCamera *globalCamera;
+extern ucncLight **globalLights;
+extern int globalLightCount;
 
 // Motion and scene control functions
 void ucncUpdateMotionByName(const char *assemblyName, float value);
@@ -24,7 +28,7 @@ void ucncFrameReady(ZBuffer *framebuffer);
 int ucncLoadNewConfiguration(const char *configFile);
 
 // Initialization and cleanup (if needed)
-int cncvis_init(ZBuffer *frameBuffer);
+int cncvis_init();
 void cncvis_cleanup();
 
 #endif // API_H

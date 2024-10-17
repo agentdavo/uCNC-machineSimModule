@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
 project(lvgl C CXX)
 
+set(ENV{LIBGL_ALWAYS_SOFTWARE} "1")
+set(ENV{QT_XCB_FORCE_SOFTWARE_OPENGL} "1")
+set(ENV{GALLIUM_DRIVER} "softpipe")
+
 # Set the correct FreeRTOS port for your system (e.g., Posix for WSL)
 set(FREERTOS_PORT GCC_POSIX CACHE STRING "Port for FreeRTOS on Posix environment")
 

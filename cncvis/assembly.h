@@ -1,6 +1,7 @@
 #ifndef ASSEMBLY_H
 #define ASSEMBLY_H
 
+#include "cncvis.h"
 #include "actor.h"
 
 #define MAX_NAME_LENGTH 64
@@ -23,7 +24,7 @@ typedef struct ucncAssembly {
     int assemblyCount;
 } ucncAssembly;
 
-ucncAssembly* ucncAssemblyNew(const char *name, const char *parentName,
+ucncAssembly *ucncAssemblyNew(const char *name, const char *parentName,
                               float originX, float originY, float originZ,
                               float positionX, float positionY, float positionZ,
                               float rotationX, float rotationY, float rotationZ,

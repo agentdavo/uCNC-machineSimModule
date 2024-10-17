@@ -1,14 +1,9 @@
 /* utils.c */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "utils.h"
-#include "assembly.h"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
+#include "stb/stb_image_write.h"
 
 // Implementations of utility functions
 
@@ -97,6 +92,38 @@ void printProfilingStats(ProfilingStats *stats, int totalFrames) {
     printf("====================================\n");
 }
 
+void drawArrowHead(float size, float x, float y, float z) {
+    // Draws a small cone-like arrowhead at the given (x, y, z) position along the axis
+    float arrowSize = size * 0.1f;  // Arrowhead size proportional to the axis size
+
+    glBegin(GL_TRIANGLES);
+        // X-Axis (Red)
+        if (x != 0.0f) {
+            glColor3f(1.0f, 0.0f, 0.0f);
+            // Triangle forming the arrowhead pointing in the +X direction
+            glVertex3f(x, 0.0f, 0.0f);            // Arrowhead tip
+            glVertex3f(x - arrowSize, arrowSize, 0.0f); // Arrowhead base
+            glVertex3f(x - arrowSize, -arrowSize, 0.0f); // Arrowhead base
+        }
+        // Y-Axis (Green)
+        if (y != 0.0f) {
+            glColor3f(0.0f, 1.0f, 0.0f);
+            // Triangle forming the arrowhead pointing in the +Y direction
+            glVertex3f(0.0f, y, 0.0f);            // Arrowhead tip
+            glVertex3f(-arrowSize, y - arrowSize, 0.0f); // Arrowhead base
+            glVertex3f(arrowSize, y - arrowSize, 0.0f);  // Arrowhead base
+        }
+        // Z-Axis (Blue)
+        if (z != 0.0f) {
+            glColor3f(0.0f, 0.0f, 1.0f);
+            // Triangle forming the arrowhead pointing in the +Z direction
+            glVertex3f(0.0f, 0.0f, z);            // Arrowhead tip
+            glVertex3f(0.0f, arrowSize, z - arrowSize);  // Arrowhead base
+            glVertex3f(0.0f, -arrowSize, z - arrowSize); // Arrowhead base
+        }
+    glEnd();
+}
+
 void drawAxis(float size) {
     // Validate the size to avoid potential issues with zero or negative values
     if (size <= 0.0f) {
@@ -107,6 +134,7 @@ void drawAxis(float size) {
     glDisable(GL_LIGHTING);
     glPushMatrix();
 
+    // Draw axis lines
     glBegin(GL_LINES);
         // X-Axis (Red)
         glColor3f(1.0f, 0.0f, 0.0f);
@@ -124,33 +152,22 @@ void drawAxis(float size) {
         glVertex3f(0.0f, 0.0f, size);
     glEnd();
 
-    // Draw arrowheads as small points for each axis
-    glPointSize(5.0f);  // Use larger points for visibility
-    glBegin(GL_POINTS);
-        // X-Axis Arrowhead (Red)
-        glColor3f(1.0f, 0.0f, 0.0f);
-        glVertex3f(size, 0.0f, 0.0f);
+    // Draw arrowheads for each axis
+    drawArrowHead(size, size, 0.0f, 0.0f);  // X-Axis arrowhead
+    drawArrowHead(size, 0.0f, size, 0.0f);  // Y-Axis arrowhead
+    drawArrowHead(size, 0.0f, 0.0f, size);  // Z-Axis arrowhead
 
-        // Y-Axis Arrowhead (Green)
-        glColor3f(0.0f, 1.0f, 0.0f);
-        glVertex3f(0.0f, size, 0.0f);
-
-        // Z-Axis Arrowhead (Blue)
-        glColor3f(0.0f, 0.0f, 1.0f);
-        glVertex3f(0.0f, 0.0f, size);
-    glEnd();
-    glPointSize(1.0f);  // Reset the point size to default
-
+    // Restore previous OpenGL state
     glPopMatrix();
-    // Re-enable lighting after drawing the axes
-    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHTING);  // Re-enable lighting after drawing the axes
 }
 
+void setBackgroundGradient(float topColor[3], float bottomColor[3]) {
 
-void setBackground(float topColor[3], float bottomColor[3]) {
     // Disable lighting to prevent it from affecting the background colors
     glDisable(GL_LIGHTING);
     glPushMatrix();
+
     // Begin drawing a quad that covers the entire screen as per frustum's far value.
     glBegin(GL_QUADS);
         // Bottom-left vertex (with bottomColor)
@@ -169,10 +186,18 @@ void setBackground(float topColor[3], float bottomColor[3]) {
         glColor3fv(bottomColor);
         glVertex3f(1500.0f, -1500.0f, -1500.0f);
     glEnd();
+
     glPopMatrix();
+
     // Re-enable lighting for subsequent rendering
     glEnable(GL_LIGHTING);
 }
+
+
+
+
+
+
 
 void CreateGround(float sizeX, float sizeY) {
     glPushMatrix();
@@ -227,40 +252,7 @@ void saveFramebufferAsImage(ZBuffer *framebuffer, const char *filename, int widt
     free(pbuf);
 }
 
-void renderScene() {
-
-    if (!globalFramebuffer || !globalCamera || !globalScene ) {
-        fprintf(stderr, "Render scene failed: Missing framebuffer, camera, scene.\n");
-        return;
-    }
-
-    // Clear the color and depth buffers
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity(); // Reset the modelview matrix
-
-    float topColor[3] = {0.529f, 0.808f, 0.980f};    // Light Sky Blue
-    float bottomColor[3] = {0.000f, 0.000f, 0.545f}; // Dark Blue
-    setBackground(topColor, bottomColor);
-
-    // --- Set Up Camera ---
-    ucncCameraApply(globalCamera);
-
-    // Render the main assembly or objects in the scene
-    // renderAssembly(globalScene);
-
-    // Restore matrices
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
-
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
-
-    glFlush();
-}
-
-void printAssemblyHierarchy(const ucncAssembly *assembly, int level) {
+void printAssemblyHierarchy(ucncAssembly *assembly, int level) {
     if (!assembly) return;
 
     // Indentation based on level
@@ -268,27 +260,116 @@ void printAssemblyHierarchy(const ucncAssembly *assembly, int level) {
         printf("  ");
     }
 
-    printf("Assembly '%s': Position (%.2f, %.2f, %.2f) Rotation (%.2f, %.2f, %.2f)\n",
-           assembly->name, assembly->positionX, assembly->positionY, assembly->positionZ,
-           assembly->rotationX, assembly->rotationY, assembly->rotationZ);
+    // Print detailed information about the assembly
+    printf("Assembly '%s':\n", assembly->name);
+
+    // Indentation for detailed fields
+    for (int i = 0; i < level + 1; i++) {
+        printf("  ");
+    }
+    printf("Origin: (%.2f, %.2f, %.2f)\n", assembly->originX, assembly->originY, assembly->originZ);
+
+    for (int i = 0; i < level + 1; i++) {
+        printf("  ");
+    }
+    printf("Position: (%.2f, %.2f, %.2f)\n", assembly->positionX, assembly->positionY, assembly->positionZ);
+
+    for (int i = 0; i < level + 1; i++) {
+        printf("  ");
+    }
+    printf("Rotation: (%.2f, %.2f, %.2f)\n", assembly->rotationX, assembly->rotationY, assembly->rotationZ);
+
+    for (int i = 0; i < level + 1; i++) {
+        printf("  ");
+    }
+    printf("Home Position: (%.2f, %.2f, %.2f)\n", assembly->homePositionX, assembly->homePositionY, assembly->homePositionZ);
+
+    for (int i = 0; i < level + 1; i++) {
+        printf("  ");
+    }
+    printf("Home Rotation: (%.2f, %.2f, %.2f)\n", assembly->homeRotationX, assembly->homeRotationY, assembly->homeRotationZ);
+
+    for (int i = 0; i < level + 1; i++) {
+        printf("  ");
+    }
+    printf("Color: (R: %.2f, G: %.2f, B: %.2f)\n", assembly->colorR, assembly->colorG, assembly->colorB);
+
+    for (int i = 0; i < level + 1; i++) {
+        printf("  ");
+    }
+    printf("Motion: Type '%s', Axis '%c', Invert: %s\n", assembly->motionType, assembly->motionAxis, assembly->invertMotion ? "yes" : "no");
 
     // Recursively print child assemblies
-    for(int i = 0; i < assembly->assemblyCount; i++) {
+    for (int i = 0; i < assembly->assemblyCount; i++) {
         printAssemblyHierarchy(assembly->assemblies[i], level + 1);
     }
 }
 
 
 void getDirectoryFromPath(const char *filePath, char *dirPath) {
+    // Find the last '/' or '\' in the file path
     const char *lastSlash = strrchr(filePath, '/');
     if (!lastSlash) {
-        lastSlash = strrchr(filePath, '\\');
+        lastSlash = strrchr(filePath, '\\');  // For Windows paths
     }
+
     if (lastSlash) {
+        // Calculate the length of the directory part
         size_t length = lastSlash - filePath;
         strncpy(dirPath, filePath, length);
-        dirPath[length] = '\0';
+        dirPath[length] = '\0';  // Ensure the string is null-terminated
     } else {
+        // If no slashes are found, assume the current directory (".")
         strcpy(dirPath, ".");
     }
+}
+
+
+
+void scanAssembly(const ucncAssembly *assembly, int *totalAssemblies, int *totalActors)
+{
+    if (!assembly) return;
+
+    printf("Assembly: %s\n", assembly->name);
+    (*totalAssemblies)++;
+
+    // Iterate over actors in the assembly
+    for (int i = 0; i < assembly->actorCount; i++) {
+        ucncActor *actor = assembly->actors[i];
+
+        if (actor && actor->stlObject) {
+            printf("  Actor: %s, STL Data Size: %lu bytes, Triangle Count: %lu\n",
+                   actor->name,
+                   actor->triangleCount * actor->stride,
+                   actor->triangleCount);
+            (*totalActors)++;
+        } else {
+            printf("  Actor: %s has no STL data.\n", actor->name);
+        }
+    }
+
+    // Recursively scan child assemblies
+    for (int i = 0; i < assembly->assemblyCount; i++) {
+        scanAssembly(assembly->assemblies[i], totalAssemblies, totalActors);
+    }
+}
+
+void scanGlobalScene(const ucncAssembly *assembly)
+{
+    if (!assembly) {
+        printf("No assemblies found in the global scene.\n");
+        return;
+    }
+
+    int totalAssemblies = 0;
+    int totalActors = 0;
+
+    printf("Scanning Global Scene...\n");
+
+    // Start scanning from the root assembly
+    scanAssembly(assembly, &totalAssemblies, &totalActors);
+
+    // Report total counts
+    printf("Total Assemblies: %d\n", totalAssemblies);
+    printf("Total Actors: %d\n", totalActors);
 }

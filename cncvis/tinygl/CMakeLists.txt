@@ -9,6 +9,8 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -fopenmp")
+
 # Set relative output directory paths, if not already defined
 if (NOT BIN_DIR)
   set(BIN_DIR bin)
@@ -28,7 +30,7 @@ if (HAVE_M_LIBRARY)
 endif (HAVE_M_LIBRARY)
 
 # Options
-option(TINYGL_BUILD_EXAMPLES "Build Examples" OFF)
+option(TINYGL_BUILD_EXAMPLES "Build Examples" ON)
 option(TINYGL_BUILD_SHARED "Build Shared Library" ON)
 option(TINYGL_BUILD_STATIC "Build Static Library" ON)
 
@@ -59,4 +61,3 @@ endif()
 # indent-tabs-mode: t
 # End:
 # ex: shiftwidth=2 tabstop=8
-

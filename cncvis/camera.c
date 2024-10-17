@@ -1,9 +1,6 @@
 /* camera.c */
 
 #include "camera.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
 
 // Implementation of ucncCameraNew, ucncCameraApply, ucncCameraFree
 
@@ -25,16 +22,23 @@ ucncCamera* ucncCameraNew(float posX, float posY, float posZ, float upX, float u
     return camera;
 }
 
+
+void gluPerspective(float fovY, float aspect, float zNear, float zFar) {
+    float fH = tanf((fovY / 2.0f) * (M_PI / 180.0f)) * zNear;
+    float fW = fH * aspect;
+    glFrustum(-fW, fW, -fH, fH, zNear, zFar);
+}
+
 /*
  * gluLookAt (adapted from Mesa)
  */
-void gluLookAt_custom(GLfloat eyex, GLfloat eyey, GLfloat eyez,
-                      GLfloat centerx, GLfloat centery, GLfloat centerz,
-                      GLfloat upx, GLfloat upy, GLfloat upz)
+void gluLookAt_custom(float eyex, float eyey, float eyez,
+                      float centerx, float centery, float centerz,
+                      float upx, float upy, float upz)
 {
-    GLfloat m[16];
-    GLfloat x[3], y[3], z[3];
-    GLfloat mag;
+    float m[16];
+    float x[3], y[3], z[3];
+    float mag;
 
     /* Make rotation matrix */
 
@@ -92,20 +96,79 @@ void gluLookAt_custom(GLfloat eyex, GLfloat eyey, GLfloat eyez,
     glTranslatef(-eyex, -eyey, -eyez);
 }
 
+
 void ucncCameraApply(ucncCamera *camera) {
     if (!camera) return;
-    GLfloat eyex = camera->positionX;
-    GLfloat eyey = camera->positionY;
-    GLfloat eyez = camera->positionZ;
-    GLfloat centerx = 0.0;
-    GLfloat centery = 0.0;
-    GLfloat centerz = 0.0;
-    GLfloat upx = camera->upX;
-    GLfloat upy = camera->upY;
-    GLfloat upz = camera->upZ;
+
+    // Apply the camera transformation using gluLookAt (or custom implementation)
+    gluLookAt_custom(
+        camera->positionX, camera->positionY, camera->positionZ,   // Camera position
+        0.0f, 0.0f, 0.0f,                                         // Look at the origin
+        camera->upX, camera->upY, camera->upZ                      // Up vector
+    );
+
+    // Apply scaling if necessary (scaling should be applied after the camera transformation)
     glScalef(camera->zoomLevel, camera->zoomLevel, camera->zoomLevel);
-    gluLookAt_custom(eyex, eyey, eyez, centerx, centery, centerz, upx, upy, upz);
+
 }
+
+
+/**
+ * @brief Update the camera's position and orientation to create an orbiting effect based on time.
+ * @param camera Pointer to the ucncCamera object.
+ * @param radius Distance from the origin for the orbit.
+ * @param elevation Height of the camera above the origin.
+ * @param rotationSpeed Degrees to rotate per second.
+ */
+void updateCameraOrbit(ucncCamera *camera, float radius, float elevation, float rotationSpeed)
+{
+    if (!camera) {
+        fprintf(stderr, "Error: Camera pointer is NULL.\n");
+        return;
+    }
+
+    // Get the current time in seconds
+    double currentTime = (double)clock() / CLOCKS_PER_SEC;
+
+    // Calculate the current angle in degrees based on time and rotation speed
+    float angle = fmod(currentTime * rotationSpeed, 360.0f); // Keep angle in range [0, 360)
+    float rad = angle * M_PI / 180.0f;  // Convert angle to radians
+
+    // Update the camera's position based on the calculated angle
+    camera->positionX = radius * sinf(rad);
+    camera->positionY = radius * cosf(rad);
+    camera->positionZ = elevation;
+
+    // Calculate the direction vector from the camera to the origin (target at 0,0,0)
+    float dirX = -camera->positionX;
+    float dirY = -camera->positionY;
+    float dirZ = -camera->positionZ;
+
+    // Calculate yaw and pitch angles to orient the camera towards the origin
+    float yaw = atan2f(dirX, dirY) * (180.0f / M_PI);  // Yaw is the rotation around the Z-axis
+    float distanceXY = sqrtf(dirX * dirX + dirY * dirY);  // Distance in the XY plane
+    float pitch = atan2f(dirZ, distanceXY) * (180.0f / M_PI);  // Pitch is the vertical angle
+
+    // Set the camera's orientation
+    camera->yaw = yaw;
+    camera->pitch = 180.0f + pitch;
+}
+
+
+void printCameraDetails(ucncCamera *camera) {
+    if (!camera) {
+        printf("Camera pointer is NULL.\n");
+        return;
+    }
+
+    // Print the camera pointer and its values
+    printf("Camera Pointer: %p\n", (void *)camera);
+    printf("Camera Position: X: %.2f, Y: %.2f, Z: %.2f\n", camera->positionX, camera->positionY, camera->positionZ);
+    printf("Camera Up Direction: X: %.2f, Y: %.2f, Z: %.2f\n", camera->upX, camera->upY, camera->upZ);
+    printf("Camera Yaw: %.2f, Pitch: %.2f\n", camera->yaw, camera->pitch);
+    printf("Camera Zoom Level: %.2f\n", camera->zoomLevel);
+}
+
 
 void ucncCameraFree(ucncCamera *camera) {
     if (camera) {

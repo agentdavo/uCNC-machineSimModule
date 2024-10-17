@@ -1,9 +1,6 @@
 /* light.c */
 
 #include "light.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 // Implementation of ucncLightNew, ucncLightAdd, ucncLightSet, ucncLightFree
 

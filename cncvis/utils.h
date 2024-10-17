@@ -3,24 +3,9 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include "tinygl/include/GL/gl.h"
-#include "tinygl/include/zbuffer.h"
-#include "camera.h"
+#include "cncvis.h"
 #include "assembly.h"
-#include "light.h"
-#include <sys/time.h>
-#include <time.h>
-
-// External Global Variables
-extern ZBuffer *globalFramebuffer;
-extern ucncCamera *globalCamera;
-extern ucncAssembly *globalScene;
-extern ucncLight **globalLights;
-extern int globalLightCount;
-
-// External Framebuffer Dimensions
-extern int framebufferWidth;
-extern int framebufferHeight;
+#include "actor.h"
 
 // Function to get current time in milliseconds
 double getCurrentTimeInMs();
@@ -49,7 +34,6 @@ typedef struct {
 } ProfilingStats;
 
 // World Functions
-void gluPerspective(GLfloat fovy, GLfloat aspect, GLfloat zNear, GLfloat zFar);
 void setupProjection(int windowWidth, int windowHeight);
 
 // Profiling Functions
@@ -59,18 +43,19 @@ void printProfilingStats(ProfilingStats *stats, int totalFrames);
 
 // Rendering Utilities
 void drawAxis(float size);
-void setBackground(float topColor[3], float bottomColor[3]);
+void setBackgroundGradient(float topColor[3], float bottomColor[3]);
 void CreateGround(float sizeX, float sizeY);
 
 // Assembly Utilities
-void printAssemblyHierarchy(const struct ucncAssembly *assembly, int level);
-
-// Scene Rendering
-void renderScene(void);
+void printAssemblyHierarchy(ucncAssembly *assembly, int level);
 
 // Framebuffer Utilities
 void saveFramebufferAsImage(ZBuffer *framebuffer, const char *filename, int width, int height);
 
 void getDirectoryFromPath(const char *filePath, char *dirPath);
+
+void scanAssembly(const ucncAssembly *assembly, int *totalAssemblies, int *totalActors);
+
+void scanGlobalScene(const ucncAssembly *assembly);
 
 #endif // UTILS_H
