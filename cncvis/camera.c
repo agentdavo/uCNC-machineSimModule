@@ -12,15 +12,20 @@ ucncCamera* ucncCameraNew(float posX, float posY, float posZ, float upX, float u
         fprintf(stderr, "Memory allocation failed for ucncCamera.\n");
         return NULL;
     }
+
+    // Initialize position and up direction
     camera->positionX = posX;
     camera->positionY = posY;
     camera->positionZ = posZ;
     camera->upX = upX;
     camera->upY = upY;
     camera->upZ = upZ;
+
+    // Set the initial yaw, pitch, and zoom level
     camera->yaw = 0.0f;
     camera->pitch = 0.0f;
     camera->zoomLevel = 1.0f;
+
     return camera;
 }
 
@@ -169,7 +174,9 @@ void printCameraDetails(ucncCamera *camera) {
     printf("Camera Up Direction: X: %.2f, Y: %.2f, Z: %.2f\n", camera->upX, camera->upY, camera->upZ);
     printf("Camera Yaw: %.2f, Pitch: %.2f\n", camera->yaw, camera->pitch);
     printf("Camera Zoom Level: %.2f\n", camera->zoomLevel);
+    printf("Camera Direction: X: %.2f, Y: %.2f, Z: %.2f\n", camera->directionX, camera->directionY, camera->directionZ);
 }
+
 
 // Helper function to convert degrees to radians
 float glm_rad(float degrees) {
@@ -178,36 +185,62 @@ float glm_rad(float degrees) {
 
 // Update camera view based on mouse movement (dx, dy)
 void update_camera_view(int32_t dx, int32_t dy) {
-    // Apply dx and dy to update the camera yaw and pitch
-    globalCamera->yaw += (float)dx * 0.1f;  // Example scaling factor for sensitivity
-    globalCamera->pitch += (float)dy * 0.1f;
+    // Sensitivity factor (can be fine-tuned)
+    const float sensitivity = 10.0f;
 
-    // Clamp pitch to prevent flipping
+    // Update yaw and pitch based on mouse movement
+    globalCamera->yaw += (float)dx * sensitivity;
+
+    float pitch_change = (float)dy * sensitivity;
+    globalCamera->pitch += pitch_change;
+
+    // Clamp pitch to prevent gimbal lock (avoid camera flipping)
     if (globalCamera->pitch > 89.0f) globalCamera->pitch = 89.0f;
     if (globalCamera->pitch < -89.0f) globalCamera->pitch = -89.0f;
+
+    // Wrap yaw to keep it in the range [0, 360)
+    if (globalCamera->yaw < 0.0f) globalCamera->yaw += 360.0f;
+    if (globalCamera->yaw >= 360.0f) globalCamera->yaw -= 360.0f;
 
     // Update the camera matrix based on new yaw/pitch
     update_camera_matrix(globalCamera);
 }
 
+
 // Update the camera's direction and recompute its view matrix
 void update_camera_matrix(ucncCamera *camera) {
-    // Update the camera direction based on yaw and pitch
-    float dir_x = cos(glm_rad(camera->yaw)) * cos(glm_rad(camera->pitch));
-    float dir_y = sin(glm_rad(camera->pitch));
-    float dir_z = sin(glm_rad(camera->yaw)) * cos(glm_rad(camera->pitch));
 
-    camera->directionX = dir_x;
-    camera->directionY = dir_y;
-    camera->directionZ = dir_z;
+    // Calculate the direction vector (forward vector) based on yaw and pitch angles
+    camera->directionX = cos(glm_rad(camera->yaw)) * cos(glm_rad(camera->pitch));
+    camera->directionY = sin(glm_rad(camera->pitch));
+    camera->directionZ = sin(glm_rad(camera->yaw)) * cos(glm_rad(camera->pitch));
 
-    // Recompute the view matrix (using your custom gluLookAt function)
+    // Normalize the direction vector to ensure consistent movement speed
+    float dir_length = sqrt(camera->directionX * camera->directionX +
+                            camera->directionY * camera->directionY +
+                            camera->directionZ * camera->directionZ);
+    camera->directionX /= dir_length;
+    camera->directionY /= dir_length;
+    camera->directionZ /= dir_length;
+
+    // Compute the camera's "look at" target position, based on its current direction
+    float targetX = camera->positionX + camera->directionX;
+    float targetY = camera->positionY + camera->directionY;
+    float targetZ = camera->positionZ + camera->directionZ;
+
+    // Ensure the up vector is normalized
+    float up_length = sqrt(camera->upX * camera->upX +
+                           camera->upY * camera->upY +
+                           camera->upZ * camera->upZ);
+    camera->upX /= up_length;
+    camera->upY /= up_length;
+    camera->upZ /= up_length;
+
+    // Use the camera's position, target, and up vector to calculate the view matrix
     gluLookAt_custom(
-        camera->positionX, camera->positionY, camera->positionZ,
-        camera->positionX + camera->directionX,
-        camera->positionY + camera->directionY,
-        camera->positionZ + camera->directionZ,
-        camera->upX, camera->upY, camera->upZ
+        camera->positionX, camera->positionY, camera->positionZ,  // Camera position (eye)
+        targetX, targetY, targetZ,                                // Target position (where the camera looks)
+        camera->upX, camera->upY, camera->upZ                     // Up vector
     );
 }
 

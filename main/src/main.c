@@ -170,11 +170,12 @@ static lv_display_t *hal_init(int32_t w, int32_t h)
 static void process_mouse_events(void) {
     SDL_Event event;
     static int32_t lastMouseX = 0, lastMouseY = 0;
+    static bool is_middle_dragging = false;  // Flag for middle mouse button drag
 
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
             case SDL_MOUSEMOTION: {
-                if (is_dragging) {
+                if (is_dragging || is_middle_dragging) {
                     // Calculate the difference in X and Y movements
                     int32_t dx = event.motion.x - lastMouseX;
                     int32_t dy = event.motion.y - lastMouseY;
@@ -183,27 +184,43 @@ static void process_mouse_events(void) {
                     lastMouseX = event.motion.x;
                     lastMouseY = event.motion.y;
 
-                    // Update camera view with the calculated deltas
-                    update_camera_view(dx, dy);
+                    // If middle mouse button is dragging, rotate the camera
+                    if (is_middle_dragging) {
+                        // Rotate the camera view based on mouse movement (like CAD)
+                        update_camera_view(dx, dy);
+                    }
                 }
                 break;
             }
 
             case SDL_MOUSEBUTTONDOWN: {
                 if (event.button.button == SDL_BUTTON_LEFT) {
+                    // Start dragging for left mouse button
                     is_dragging = true;
+                    lastMouseX = event.motion.x;
+                    lastMouseY = event.motion.y;
+                } else if (event.button.button == SDL_BUTTON_MIDDLE) {
+                    // Start dragging for middle mouse button (rotate view)
+                    is_middle_dragging = true;
+                    lastMouseX = event.motion.x;
+                    lastMouseY = event.motion.y;
                 }
                 break;
             }
 
             case SDL_MOUSEBUTTONUP: {
                 if (event.button.button == SDL_BUTTON_LEFT) {
+                    // Stop dragging for left mouse button
                     is_dragging = false;
+                } else if (event.button.button == SDL_BUTTON_MIDDLE) {
+                    // Stop dragging for middle mouse button
+                    is_middle_dragging = false;
                 }
                 break;
             }
 
             case SDL_MOUSEWHEEL: {
+                // Handle zoom (scroll wheel)
                 if (event.wheel.y > 0) {
                     globalCamera->zoomLevel += 1.0f;
                 } else if (event.wheel.y < 0) {
@@ -216,8 +233,8 @@ static void process_mouse_events(void) {
                 break;
         }
     }
+    printCameraDetails(globalCamera);
 }
-
 
 
 // Function definitions for keyboard events
@@ -248,7 +265,18 @@ static void process_keyboard_events(void) {
     }
 
 
-    // Forward/backward movement (Z-axis)d
+    // Calculate the right vector (cross product of direction and up vectors for strafing)
+    float rightZ = globalCamera->directionZ * globalCamera->upY - globalCamera->directionY * globalCamera->upZ;
+    float rightX = globalCamera->directionX * globalCamera->upZ - globalCamera->directionZ * globalCamera->upX;
+    float rightY = globalCamera->directionY * globalCamera->upX - globalCamera->directionX * globalCamera->upY;
+
+    // Normalize the right vector
+    float rightMagnitude = sqrt(rightX * rightX + rightY * rightY + rightZ * rightZ);
+    rightX /= rightMagnitude;
+    rightY /= rightMagnitude;
+    rightZ /= rightMagnitude;
+
+    // Forward/backward movement (along camera's direction)
     if (state[SDL_SCANCODE_W]) {
         // Move forward
         globalCamera->positionX += globalCamera->directionX * 10.0f;
@@ -262,26 +290,32 @@ static void process_keyboard_events(void) {
         globalCamera->positionZ -= globalCamera->directionZ * 10.0f;
     }
 
-    // Strafe left/right (X-axis)
+    // Strafe left/right (using the right vector for strafing)
     if (state[SDL_SCANCODE_A]) {
         // Strafe left
-        globalCamera->positionX -= globalCamera->upY * globalCamera->directionZ * 10.0f;
-        globalCamera->positionZ += globalCamera->upY * globalCamera->directionX * 10.0f;
+        globalCamera->positionX -= rightX * 10.0f;
+        globalCamera->positionY -= rightY * 10.0f;
+        globalCamera->positionZ -= rightZ * 10.0f;
     }
     if (state[SDL_SCANCODE_D]) {
         // Strafe right
-        globalCamera->positionX += globalCamera->upY * globalCamera->directionZ * 10.0f;
-        globalCamera->positionZ -= globalCamera->upY * globalCamera->directionX * 10.0f;
+        globalCamera->positionX += rightX * 10.0f;
+        globalCamera->positionY += rightY * 10.0f;
+        globalCamera->positionZ += rightZ * 10.0f;
     }
 
-    // Move up/down (Y-axis)
+    // Move up/down (along the up vector)
     if (state[SDL_SCANCODE_Q]) {
-        // Move up
-        globalCamera->positionZ += 10.0f;
+        // Move up (along the up vector)
+        globalCamera->positionX += globalCamera->upX * 10.0f;
+        globalCamera->positionY += globalCamera->upY * 10.0f;
+        globalCamera->positionZ += globalCamera->upZ * 10.0f;
     }
     if (state[SDL_SCANCODE_E]) {
-        // Move down
-        globalCamera->positionZ -= 10.0f;
+        // Move down (along the up vector)
+        globalCamera->positionX -= globalCamera->upX * 10.0f;
+        globalCamera->positionY -= globalCamera->upY * 10.0f;
+        globalCamera->positionZ -= globalCamera->upZ * 10.0f;
     }
 
     // After changing position, update the camera's matrix
