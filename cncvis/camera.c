@@ -20,6 +20,9 @@ ucncCamera* ucncCameraNew(float posX, float posY, float posZ, float upX, float u
     camera->upX = upX;
     camera->upY = upY;
     camera->upZ = upZ;
+    camera->directionX = 0.0f;
+    camera->directionY = 0.0f;
+    camera->directionZ = 0.0f;
 
     // Set the initial yaw, pitch, and zoom level
     camera->yaw = 0.0f;

@@ -166,7 +166,7 @@ int cncvis_init(const char *configFile)
     glInit(globalFramebuffer);
 
     // Initialize the camera and Y axis as up
-    globalCamera = ucncCameraNew(500.0f, 500.0f, 500.0f, 0.0f, 0.0f, 1.0f);
+    globalCamera = ucncCameraNew(600.0f, 600.0f, 300.0f, 0.0f, 0.0f, 1.0f);
 
     printCameraDetails(globalCamera);
     printf("Successfully initialised the global camera.\n");
@@ -179,19 +179,10 @@ int cncvis_init(const char *configFile)
     // Enable depth testing and lighting for the scene
     glEnable(GL_DEPTH_TEST);
 
-    // Set up lighting properties for GL_LIGHT0 to simulate distant sunlight
-    GLfloat light_position[] = {1000.0, 1000.0, 1000.0, 0.0}; // Directional light pointing from above and to the right
-    GLfloat light_ambient[] = {0.2, 0.2, 0.2, 1.0};  // Very soft ambient lighting
-    GLfloat light_diffuse[] = {1.0, 1.0, 1.0, 1.0};  // Full white diffuse lighting
-    GLfloat light_specular[] = {1.0, 1.0, 1.0, 1.0}; // Full white specular highlights
-    glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-    glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
-    glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
-
     // Enable lighting for the scene
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
+    glEnable(GL_LIGHT1);
 
     // Enable color material to apply colors from the actor to materials
     glEnable(GL_COLOR_MATERIAL);
@@ -207,7 +198,7 @@ int cncvis_init(const char *configFile)
     glLoadIdentity();
     // Correct aspect ratio calculation for the framebuffer
     GLfloat aspectRatio = (GLfloat)globalFramebuffer->xsize / (GLfloat)globalFramebuffer->ysize;
-    gluPerspective(90.0f, aspectRatio, 1.0f, 5000.0f); // FOV, aspect ratio, near, far planes
+    gluPerspective(60.0f, aspectRatio, 1.0f, 5000.0f); // FOV, aspect ratio, near, far planes
 
     // Switch to modelview matrix for placing objects in the 3D scene
     glMatrixMode(GL_MODELVIEW);
@@ -277,7 +268,7 @@ void cncvis_render(void)
     glLoadIdentity();
 
     GLfloat aspectRatio = (GLfloat)globalFramebuffer->xsize / (GLfloat)globalFramebuffer->ysize;
-    gluPerspective(90.0f, aspectRatio, 1.0f, 5000.0f);
+    gluPerspective(60.0f, aspectRatio, 1.0f, 5000.0f);
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();

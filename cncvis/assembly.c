@@ -164,6 +164,9 @@ void ucncAssemblyRender(const ucncAssembly *assembly) {
     //       assembly->name, assembly->positionX, assembly->positionY, assembly->positionZ,
     //       assembly->rotationX, assembly->rotationY, assembly->rotationZ);
 
+    extern void drawAxis(float);
+    drawAxis(500.0f); // Draw a reference axis
+
     // Render all actors in this assembly
     for (int i = 0; i < assembly->actorCount; i++) {
         ucncActorRender(assembly->actors[i]);
