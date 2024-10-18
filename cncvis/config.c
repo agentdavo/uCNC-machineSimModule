@@ -216,69 +216,182 @@ int loadConfiguration(const char *filename, ucncAssembly **rootAssembly, ucncLig
     }
 
     // Process lights
+    // Process <lights> node
     mxml_node_t *lightsNode = mxmlFindElement(tree, tree, "lights", NULL, NULL, MXML_DESCEND_ALL);
-    if (lightsNode)
-    {
+    if (lightsNode) {
+        // Iterate over each <light> node
         for (mxml_node_t *lightNode = mxmlFindElement(lightsNode, lightsNode, "light", NULL, NULL, MXML_DESCEND_ALL);
              lightNode;
-             lightNode = mxmlFindElement(lightNode, lightsNode, "light", NULL, NULL, MXML_DESCEND_ALL))
-        {
+             lightNode = mxmlFindElement(lightNode, lightsNode, "light", NULL, NULL, MXML_DESCEND_ALL)) {
+
+            // Extract light ID
             const char *lightID_str = mxmlElementGetAttr(lightNode, "id");
-            float posX = atof(mxmlElementGetAttr(lightNode, "x"));
-            float posY = atof(mxmlElementGetAttr(lightNode, "y"));
-            float posZ = atof(mxmlElementGetAttr(lightNode, "z"));
-
-            // Ambient
-            mxml_node_t *ambientNode = mxmlFindElement(lightNode, lightNode, "ambient", NULL, NULL, MXML_DESCEND_ALL);
-            float ambientR = atof(mxmlElementGetAttr(ambientNode, "r"));
-            float ambientG = atof(mxmlElementGetAttr(ambientNode, "g"));
-            float ambientB = atof(mxmlElementGetAttr(ambientNode, "b"));
-
-            // Diffuse
-            mxml_node_t *diffuseNode = mxmlFindElement(lightNode, lightNode, "diffuse", NULL, NULL, MXML_DESCEND_ALL);
-            float diffuseR = atof(mxmlElementGetAttr(diffuseNode, "r"));
-            float diffuseG = atof(mxmlElementGetAttr(diffuseNode, "g"));
-            float diffuseB = atof(mxmlElementGetAttr(diffuseNode, "b"));
-
-            // Specular
-            mxml_node_t *specularNode = mxmlFindElement(lightNode, lightNode, "specular", NULL, NULL, MXML_DESCEND_ALL);
-            float specularR = atof(mxmlElementGetAttr(specularNode, "r"));
-            float specularG = atof(mxmlElementGetAttr(specularNode, "g"));
-            float specularB = atof(mxmlElementGetAttr(specularNode, "b"));
+            if (!lightID_str) {
+                fprintf(stderr, "Light without 'id' attribute found. Skipping.\n");
+                continue;
+            }
 
             GLenum lightID;
             if (strcmp(lightID_str, "GL_LIGHT0") == 0)
                 lightID = GL_LIGHT0;
             else if (strcmp(lightID_str, "GL_LIGHT1") == 0)
                 lightID = GL_LIGHT1;
-            else
-            {
-                fprintf(stderr, "Unknown light ID '%s'.\n", lightID_str);
+            else if (strcmp(lightID_str, "GL_LIGHT2") == 0)
+                lightID = GL_LIGHT2;
+            else if (strcmp(lightID_str, "GL_LIGHT3") == 0)
+                lightID = GL_LIGHT3;
+            else if (strcmp(lightID_str, "GL_LIGHT4") == 0)
+                lightID = GL_LIGHT4;
+            else if (strcmp(lightID_str, "GL_LIGHT5") == 0)
+                lightID = GL_LIGHT5;
+            else if (strcmp(lightID_str, "GL_LIGHT6") == 0)
+                lightID = GL_LIGHT6;
+            else if (strcmp(lightID_str, "GL_LIGHT7") == 0)
+                lightID = GL_LIGHT7;
+            else {
+                fprintf(stderr, "Unknown light ID '%s'. Skipping.\n", lightID_str);
                 continue;
             }
 
-            // Create light object
-            ucncLight *light = ucncLightNew(lightID, posX, posY, posZ, ambientR, ambientG, ambientB, diffuseR, diffuseG, diffuseB, specularR, specularG, specularB);
-            if (light)
-            {
-                // Reallocation for lights
-                ucncLight **temp = realloc(loadedLights, (loadedLightCount + 1) * sizeof(ucncLight *));
-                if (!temp)
-                {
-                    fprintf(stderr, "Reallocation failed for lights.\n");
-                    ucncLightFree(light);
-                    freeAllLights(loadedLights, loadedLightCount);
-                    mxmlDelete(tree);
-                    return 0;
-                }
-                loadedLights = temp;
-                loadedLights[loadedLightCount++] = light;
+            // Extract position
+            mxml_node_t *positionNode = mxmlFindElement(lightNode, lightNode, "position", NULL, NULL, MXML_DESCEND_ALL);
+            if (!positionNode) {
+                fprintf(stderr, "Light '%s' missing <position> tag. Skipping.\n", lightID_str);
+                continue;
             }
+            const char *posX_str = mxmlElementGetAttr(positionNode, "x");
+            const char *posY_str = mxmlElementGetAttr(positionNode, "y");
+            const char *posZ_str = mxmlElementGetAttr(positionNode, "z");
+            const char *posW_str = mxmlElementGetAttr(positionNode, "w");
+
+            if (!posX_str || !posY_str || !posZ_str || !posW_str) {
+                fprintf(stderr, "Light '%s' has incomplete <position> attributes. Skipping.\n", lightID_str);
+                continue;
+            }
+
+            float posX = atof(posX_str);
+            float posY = atof(posY_str);
+            float posZ = atof(posZ_str);
+            float posW = atof(posW_str);
+
+            // Extract ambient color
+            mxml_node_t *ambientNode = mxmlFindElement(lightNode, lightNode, "ambient", NULL, NULL, MXML_DESCEND_ALL);
+            if (!ambientNode) {
+                fprintf(stderr, "Light '%s' missing <ambient> tag. Using default ambient (0,0,0).\n", lightID_str);
+            }
+            float ambientR = ambientNode ? atof(mxmlElementGetAttr(ambientNode, "r")) : 0.0f;
+            float ambientG = ambientNode ? atof(mxmlElementGetAttr(ambientNode, "g")) : 0.0f;
+            float ambientB = ambientNode ? atof(mxmlElementGetAttr(ambientNode, "b")) : 0.0f;
+
+            // Extract diffuse color
+            mxml_node_t *diffuseNode = mxmlFindElement(lightNode, lightNode, "diffuse", NULL, NULL, MXML_DESCEND_ALL);
+            if (!diffuseNode) {
+                fprintf(stderr, "Light '%s' missing <diffuse> tag. Using default diffuse (1,1,1).\n", lightID_str);
+            }
+            float diffuseR = diffuseNode ? atof(mxmlElementGetAttr(diffuseNode, "r")) : 1.0f;
+            float diffuseG = diffuseNode ? atof(mxmlElementGetAttr(diffuseNode, "g")) : 1.0f;
+            float diffuseB = diffuseNode ? atof(mxmlElementGetAttr(diffuseNode, "b")) : 1.0f;
+
+            // Extract specular color
+            mxml_node_t *specularNode = mxmlFindElement(lightNode, lightNode, "specular", NULL, NULL, MXML_DESCEND_ALL);
+            if (!specularNode) {
+                fprintf(stderr, "Light '%s' missing <specular> tag. Using default specular (1,1,1).\n", lightID_str);
+            }
+            float specularR = specularNode ? atof(mxmlElementGetAttr(specularNode, "r")) : 1.0f;
+            float specularG = specularNode ? atof(mxmlElementGetAttr(specularNode, "g")) : 1.0f;
+            float specularB = specularNode ? atof(mxmlElementGetAttr(specularNode, "b")) : 1.0f;
+
+            // Create light object
+            ucncLight *light = ucncLightNew(lightID, posX, posY, posZ,
+                                           ambientR, ambientG, ambientB,
+                                           diffuseR, diffuseG, diffuseB,
+                                           specularR, specularG, specularB);
+            if (!light) {
+                fprintf(stderr, "Failed to create light '%s'. Skipping.\n", lightID_str);
+                continue;
+            }
+
+            // Determine if the light is a spotlight
+            mxml_node_t *spotNode = mxmlFindElement(lightNode, lightNode, "spot", NULL, NULL, MXML_DESCEND_ALL);
+            if (spotNode) {
+                mxml_node_t *directionNode = mxmlFindElement(spotNode, spotNode, "direction", NULL, NULL, MXML_DESCEND_ALL);
+                if (!directionNode) {
+                    fprintf(stderr, "Light '%s' has <spot> without <direction>. Ignoring spotlight properties.\n", lightID_str);
+                } else {
+                    const char *dirX_str = mxmlElementGetAttr(directionNode, "x");
+                    const char *dirY_str = mxmlElementGetAttr(directionNode, "y");
+                    const char *dirZ_str = mxmlElementGetAttr(directionNode, "z");
+
+                    if (!dirX_str || !dirY_str || !dirZ_str) {
+                        fprintf(stderr, "Light '%s' has incomplete <direction> attributes. Ignoring spotlight properties.\n", lightID_str);
+                    } else {
+                        light->spot_direction[0] = atof(dirX_str);
+                        light->spot_direction[1] = atof(dirY_str);
+                        light->spot_direction[2] = atof(dirZ_str);
+                        light->is_spotlight = 1;
+                    }
+                }
+
+                // Extract spotlight cutoff
+                const char *cutoff_str = mxmlElementGetAttr(spotNode, "cutoff");
+                if (cutoff_str) {
+                    light->spot_cutoff = atof(cutoff_str);
+                } else {
+                    light->spot_cutoff = 180.0f; // Default: no spotlight effect
+                }
+
+                // Extract spotlight exponent
+                const char *exponent_str = mxmlElementGetAttr(spotNode, "exponent");
+                if (exponent_str) {
+                    light->spot_exponent = atof(exponent_str);
+                } else {
+                    light->spot_exponent = 0.0f; // Default
+                }
+            }
+
+            // Extract attenuation properties
+            mxml_node_t *attenuationNode = mxmlFindElement(lightNode, lightNode, "attenuation", NULL, NULL, MXML_DESCEND_ALL);
+            if (attenuationNode) {
+                mxml_node_t *constantNode = mxmlFindElement(attenuationNode, attenuationNode, "constant", NULL, NULL, MXML_DESCEND_ALL);
+                if (constantNode) {
+                    const char *const_val_str = mxmlElementGetAttr(constantNode, "value");
+                    if (const_val_str)
+                        light->constant_attenuation = atof(const_val_str);
+                }
+
+                mxml_node_t *linearNode = mxmlFindElement(attenuationNode, attenuationNode, "linear", NULL, NULL, MXML_DESCEND_ALL);
+                if (linearNode) {
+                    const char *linear_val_str = mxmlElementGetAttr(linearNode, "value");
+                    if (linear_val_str)
+                        light->linear_attenuation = atof(linear_val_str);
+                }
+
+                mxml_node_t *quadraticNode = mxmlFindElement(attenuationNode, attenuationNode, "quadratic", NULL, NULL, MXML_DESCEND_ALL);
+                if (quadraticNode) {
+                    const char *quadratic_val_str = mxmlElementGetAttr(quadraticNode, "value");
+                    if (quadratic_val_str)
+                        light->quadratic_attenuation = atof(quadratic_val_str);
+                }
+            }
+
+            // Add the light to the loadedLights array
+            ucncLight **temp = realloc(loadedLights, (loadedLightCount + 1) * sizeof(ucncLight *));
+            if (!temp) {
+                fprintf(stderr, "Reallocation failed while loading lights. Freeing allocated lights.\n");
+                ucncLightFree(light);
+                freeAllLights(&loadedLights, loadedLightCount);
+                mxmlDelete(tree);
+                return -1;
+            }
+            loadedLights = temp;
+            loadedLights[loadedLightCount++] = light;
         }
     }
 
-    mxmlDelete(tree); // Free the XML tree
+    // Clean up
+    mxmlDelete(tree);
 
+    // Assign outputs
     *lights = loadedLights;
     *lightCount = loadedLightCount;
 
@@ -323,7 +436,7 @@ int loadConfiguration(const char *filename, ucncAssembly **rootAssembly, ucncLig
     if (*rootAssembly == NULL)
     {
         fprintf(stderr, "No root assembly found or created.\n");
-        freeAllLights(loadedLights, loadedLightCount);
+        freeAllLights(&loadedLights, loadedLightCount);
         for (int i = 0; i < assemblyCount; i++)
         {
             ucncAssemblyFree(assemblies[i]);

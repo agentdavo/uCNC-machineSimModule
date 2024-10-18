@@ -162,12 +162,11 @@ void drawAxis(float size) {
     glEnable(GL_LIGHTING);  // Re-enable lighting after drawing the axes
 }
 
+// Function to set a 3D gradient background
 void setBackgroundGradient(float topColor[3], float bottomColor[3]) {
-
     // Disable lighting to prevent it from affecting the background colors
     glDisable(GL_LIGHTING);
     glPushMatrix();
-
     // Begin drawing a quad that covers the entire screen as per frustum's far value.
     glBegin(GL_QUADS);
         // Bottom-left vertex (with bottomColor)
@@ -180,20 +179,16 @@ void setBackgroundGradient(float topColor[3], float bottomColor[3]) {
 
         // Top-right vertex (with topColor)
         glColor3fv(topColor);
-        glVertex3f(1500.0f, 1500.0f, -1500.0f);
+        glVertex3f(1500.0f, 1500.0f, -1500.0);
 
         // Bottom-right vertex (with bottomColor)
         glColor3fv(bottomColor);
-        glVertex3f(1500.0f, -1500.0f, -1500.0f);
+        glVertex3f(1500.0f, -1500.0f, -1500.0);
     glEnd();
-
     glPopMatrix();
-
     // Re-enable lighting for subsequent rendering
     glEnable(GL_LIGHTING);
 }
-
-
 
 
 

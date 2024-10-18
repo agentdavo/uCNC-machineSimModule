@@ -157,19 +157,14 @@ int cncvis_init(const char *configFile)
     }
     ucncSetAllAssembliesToHome(globalScene);
     printAssemblyHierarchy(globalScene, 0);
-    printCameraDetails(globalCamera);
-
-    printAssemblyHierarchy(globalScene, 0);
-    printf("Successfully loaded the assembly and %d lights.\n", globalLightCount);
+    printLightHierarchy(globalLights, globalLightCount, 0);
 
     // Initialize TinyGL with the provided framebuffer
     glInit(globalFramebuffer);
 
     // Initialize the camera and Y axis as up
-    globalCamera = ucncCameraNew(600.0f, 600.0f, 300.0f, 0.0f, 0.0f, 1.0f);
-
+    globalCamera = ucncCameraNew(800.0f, 800.0f, 400.0f, 0.0f, 0.0f, 1.0f);
     printCameraDetails(globalCamera);
-    printf("Successfully initialised the global camera.\n");
 
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 
@@ -182,7 +177,6 @@ int cncvis_init(const char *configFile)
     // Enable lighting for the scene
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
-    glEnable(GL_LIGHT1);
 
     // Enable color material to apply colors from the actor to materials
     glEnable(GL_COLOR_MATERIAL);
@@ -196,6 +190,10 @@ int cncvis_init(const char *configFile)
     // ------------------------------
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
+
+    // Apply global rotation to align coordinate systems
+    glRotatef(90.0f, 1.0f, 0.0f, 0.0f); // Rotate +90 degrees around X-axis
+
     // Correct aspect ratio calculation for the framebuffer
     GLfloat aspectRatio = (GLfloat)globalFramebuffer->xsize / (GLfloat)globalFramebuffer->ysize;
     gluPerspective(60.0f, aspectRatio, 1.0f, 5000.0f); // FOV, aspect ratio, near, far planes
@@ -264,6 +262,14 @@ int ucncLoadNewConfiguration(const char *configFile)
 void cncvis_render(void)
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity(); // Reset the modelview matrix
+
+    float topColor[3] = {0.529f, 0.808f, 0.980f};    // Light Sky Blue
+    float bottomColor[3] = {0.000f, 0.000f, 0.545f}; // Dark Blue
+    setBackgroundGradient(topColor, bottomColor);
+
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
 
@@ -276,6 +282,9 @@ void cncvis_render(void)
     // Update camera orbit
     // updateCameraOrbit(globalCamera, ORBIT_RADIUS, ORBIT_ELEVATION, ORBIT_ROTATION_SPEED);
     gluLookAt_custom(globalCamera->positionX, globalCamera->positionY, globalCamera->positionZ, 0.0f, 0.0f, 0.0f, globalCamera->upX, globalCamera->upY, globalCamera->upZ);
+
+    // Apply global rotation to align coordinate systems
+    // glRotatef(90.0f, 1.0f, 0.0f, 0.0f); // Rotate +90 degrees around X-axis
 
     ucncAssemblyRender(globalScene);
     drawAxis(500.0f);
@@ -290,7 +299,7 @@ void cncvis_cleanup()
     // Free assemblies and actors
     ucncAssemblyFree(globalScene);
     // Free lights
-    freeAllLights(globalLights, globalLightCount);
+    freeAllLights(&globalLights, globalLightCount);
     // Free camera
     ucncCameraFree(globalCamera);
     // Close TinyGL context

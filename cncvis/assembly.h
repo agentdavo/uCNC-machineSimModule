@@ -6,6 +6,8 @@
 
 #define MAX_NAME_LENGTH 64
 
+extern void drawAxis(float);
+
 typedef struct ucncAssembly {
     char name[MAX_NAME_LENGTH];
     char parentName[MAX_NAME_LENGTH];

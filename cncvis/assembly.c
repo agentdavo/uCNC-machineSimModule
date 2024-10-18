@@ -155,7 +155,7 @@ void ucncAssemblyRender(const ucncAssembly *assembly) {
     glRotatef(assembly->rotationX, 1.0f, 0.0f, 0.0f); // X-axis rotation
     glRotatef(assembly->rotationY, 0.0f, 1.0f, 0.0f); // Y-axis rotation
     glRotatef(assembly->rotationZ, 0.0f, 0.0f, 1.0f); // Z-axis rotation
-
+    drawAxis(100.0f);
     // Translate back by the origin (undo translation)
     glTranslatef(-assembly->originX, -assembly->originY, -assembly->originZ);
 
@@ -163,9 +163,6 @@ void ucncAssemblyRender(const ucncAssembly *assembly) {
     // printf("Rendering assembly: %s at position (%.2f, %.2f, %.2f) with rotation (%.2f, %.2f, %.2f)\n",
     //       assembly->name, assembly->positionX, assembly->positionY, assembly->positionZ,
     //       assembly->rotationX, assembly->rotationY, assembly->rotationZ);
-
-    extern void drawAxis(float);
-    drawAxis(500.0f); // Draw a reference axis
 
     // Render all actors in this assembly
     for (int i = 0; i < assembly->actorCount; i++) {
