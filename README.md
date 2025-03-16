@@ -63,7 +63,7 @@ The CNC Machine Controller UI aims to provide operators with a comprehensive and
 - **Modular Codebase**: Each UI component and page is encapsulated within its own module for maintainability and scalability.
 - **Consistent Styling**: Uniform look and feel across all UI elements, enhancing user experience.
 
-![cncvis.png](attachment:cncvis.png)
+![Alt text](cncvis.png "a title")
 
 ---
 
