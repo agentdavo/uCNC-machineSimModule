@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 # Project name and version
-project(libmxml VERSION 4.0.4 LANGUAGES C C)
+project(libmxml VERSION 4.0.4 LANGUAGES C)
 
 set(MXML_VERSION ${PROJECT_VERSION})
 

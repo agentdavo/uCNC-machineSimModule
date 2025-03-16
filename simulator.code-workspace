@@ -92,7 +92,7 @@
                 "program": "${workspaceFolder}/bin/main",
                 "args": [],
                 "cwd": "${workspaceFolder}",
-                "preLaunchTask": "Build",
+                "preLaunchTask": "CMake: build",
                 "stopAtEntry": false,
                 "linux": {
                     "MIMode": "gdb",
@@ -107,26 +107,15 @@
                 },
                 "setupCommands": [
                     {
-                      "description": "Enable pretty-printing for gdb",
-                      "text": "-enable-pretty-printing",
-                      "ignoreFailures": true
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
                     },
                     {
-                      "description": "Ignore stepping into system libraries",
-                      "text": "set auto-load-scripts off"
+                        "description": "Ignore stepping into system libraries",
+                        "text": "set auto-load-scripts off"
                     }
                 ]
-            },
-            {
-                "name": "Debug LVGL demo with LLVM",
-                "type": "cppdbg",
-                "request": "launch",
-                "program": "${workspaceFolder}/bin/main",
-                "args": [],
-                "cwd": "${workspaceFolder}",
-                "preLaunchTask": "Build",
-                "stopAtEntry": false,
-                "MIMode": "lldb"
             }
         ]
     }

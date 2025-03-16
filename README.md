@@ -1,6 +1,10 @@
 # CNC Machine Controller UI
 
-Welcome to the **CNC Machine Controller UI** project! This project is designed to provide a user-friendly and efficient interface for controlling CNC machines using the [LVGL (Light and Versatile Graphics Library)](https://lvgl.io/) in C. The UI features a persistent vertical navigation menu, dynamic footer buttons, and multiple interactive pages to enhance operator interaction and machine control.
+Welcome to the **CNC Machine Controller UI** project!
+
+This project is designed to provide a user-friendly and efficient interface for controlling CNC machines using the [LVGL (Light and Versatile Graphics Library)](https://lvgl.io/) in C.
+
+The UI features a persistent vertical navigation menu, dynamic footer buttons, and multiple interactive pages to enhance operator interaction and machine control.
 
 ---
 
@@ -53,11 +57,13 @@ Welcome to the **CNC Machine Controller UI** project! This project is designed t
 
 The CNC Machine Controller UI aims to provide operators with a comprehensive and intuitive interface to manage and monitor CNC machine operations. Key features include:
 
-- **Persistent Vertical Navigation Menu**: Located on the far right, inspired by FANUC's design, ensuring consistent access to all UI pages.
+- **Persistent Vertical Navigation Menu**: Located on the far right, ensuring consistent access to all UI pages.
 - **Dynamic Footer Buttons**: A footer with 10 buttons where the middle 8 adapt based on the active page, providing relevant controls and actions.
 - **Multiple Interactive Pages**: Including Status, Visualization, Programs, Offsets, Diagnostics, Settings, Dashboard, and MDI (Manual Data Input).
 - **Modular Codebase**: Each UI component and page is encapsulated within its own module for maintainability and scalability.
 - **Consistent Styling**: Uniform look and feel across all UI elements, enhancing user experience.
+
+![cncvis.png](attachment:cncvis.png)
 
 ---
 
@@ -124,7 +130,7 @@ The CNC Machine Controller UI aims to provide operators with a comprehensive and
 │   ├── fonts
 ├── lvgl
 │   ├── (LVGL library files or submodule)
-├── Makefile
+├── CMakeLists.txt
 ├── README.md
 ```
 
@@ -324,8 +330,9 @@ To get started with the CNC Machine Controller UI project, follow these steps:
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/yourusername/cnc-controller-ui.git
-   cd cnc-controller-ui
+   git clone https://github.com/agentdavo/uCNC-machineSimModule.git
+   cd uCNC-machineSimModule
+
    ```
 
 2. **Initialize and Update Submodules** (if applicable):
@@ -401,11 +408,6 @@ For questions, feedback, or support, please contact:
 ## Acknowledgments
 
 - **LVGL**: Thanks to the developers of LVGL for providing a powerful and flexible graphics library.
-- **FANUC**: Inspiration for the navigation menu design.
 - **Open Source Community**: For their continuous support and contributions to the CNC and embedded systems ecosystems.
-
----
-
-*This README was last updated on `2024-10-13`.*
 
 ---
