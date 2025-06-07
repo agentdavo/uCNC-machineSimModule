@@ -8,4 +8,4 @@ When modifying code in this folder:
    cmake -S . -B build
    cmake --build build
    ```
-3. Update `/cncvis/README.md` if the public API or build steps change.
+3. Update cncvis/README.md` if the public API or build steps change.
