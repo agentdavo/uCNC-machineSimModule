@@ -71,67 +71,36 @@ The CNC Machine Controller UI aims to provide operators with a comprehensive and
 
 ```
 /project_root
-├── src
-│   ├── main.c
-│   ├── app.c
-│   ├── app.h
-│   ├── lvgl_adapter.c
-│   ├── lvgl_adapter.h
-│   ├── ui
-│   │   ├── ui_common.c
-│   │   ├── ui_common.h
-│   │   ├── ui_header.c
-│   │   ├── ui_header.h
-│   │   ├── ui_footer.c
-│   │   ├── ui_footer.h
-│   │   ├── ui_navigation.c
-│   │   ├── ui_navigation.h
-│   │   ├── ui_dashboard.c
-│   │   ├── ui_dashboard.h
-│   │   ├── pages
-│   │   │   ├── ui_status_page.c
-│   │   │   ├── ui_status_page.h
-│   │   │   ├── ui_visualization_page.c
-│   │   │   ├── ui_visualization_page.h
-│   │   │   ├── ui_programs_page.c
-│   │   │   ├── ui_programs_page.h
-│   │   │   ├── ui_offsets_page.c
-│   │   │   ├── ui_offsets_page.h
-│   │   │   ├── ui_diagnostics_page.c
-│   │   │   ├── ui_diagnostics_page.h
-│   │   │   ├── ui_settings_page.c
-│   │   │   ├── ui_settings_page.h
-│   │   │   ├── ui_dashboard.c
-│   │   │   ├── ui_dashboard.h
-│   │   │   ├── ui_mdi_page.c
-│   │   │   ├── ui_mdi_page.h
-│   ├── styles
-│   │   ├── ui_styles.c
-│   │   ├── ui_styles.h
-│   ├── data
-│   │   ├── data_manager.c
-│   │   ├── data_manager.h
-│   ├── cnc
-│   │   ├── cnc_communication.c
-│   │   ├── cnc_communication.h
-│   │   ├── cnc_state_machine.c
-│   │   ├── cnc_state_machine.h
-│   ├── utils
-│   │   ├── logger.c
-│   │   ├── logger.h
-│   │   ├── config.c
-│   │   ├── config.h
-│   │   ├── error_handling.c
-│   │   ├── error_handling.h
-│   │   ├── user_profiles.c
-│   │   ├── user_profiles.h
-├── assets
-│   ├── images
-│   ├── fonts
-├── lvgl
-│   ├── (LVGL library files or submodule)
-├── CMakeLists.txt
-├── README.md
+├── cncvis                      # Machine Simulation Module
+│   ├── tinygl/                 # TinyGL rendering library
+│   ├── libstlio/               # STL file input/output library
+│   ├── stb/                    # STB image utilities
+│   ├── mxml/                   # Mini-XML parsing library
+│   ├── machines/               # Machine configurations
+│   │   └── meca500/            # Example robot configuration
+│   ├── actor.c/h               # 3D model handling
+│   ├── assembly.c/h            # Assembly hierarchy system
+│   ├── camera.c/h              # Camera control system
+│   ├── light.c/h               # Lighting system
+│   ├── config.c/h              # Configuration loading
+│   ├── api.c/h                 # Public API for machine simulation
+│   ├── osd.c/h                 # On-screen display system
+│   └── README.md               # Module-specific documentation
+├── main                        # Main application
+│   ├── assets/                 #
+│   ├── src/                    # Source files
+│   |   └── main.c              # Application entry point
+|   ├── ui                      # User Interface Module
+│   |   └── cnc/                #
+│   |   └── data/               #
+│   |   └── pages/              # UI pages (status, visualization, etc.)
+│   |   └── styles/             # UI styling
+│   |   └── utils/              # UI styling
+│   |   └── ui_app.c/h          # Main UI initialization
+│   └── app.c/h                 # LVGL entry point
+├── CMakeLists.txt              # Main CMake configuration
+├── README.md                   # This documentation file
+└── build/                      # Build output (generated)
 ```
 
 ---
@@ -392,16 +361,6 @@ Contributions are welcome! To contribute to the CNC Machine Controller UI projec
 ## License
 
 This project is licensed under the [MIT License](LICENSE). You are free to use, modify, and distribute this software under the terms of the license. See the [LICENSE](LICENSE) file for more details.
-
----
-
-## Contact
-
-For questions, feedback, or support, please contact:
-
-- **Project Maintainer**: [Your Name](mailto:your.email@example.com)
-- **GitHub Issues**: [Open an Issue](https://github.com/yourusername/cnc-controller-ui/issues)
-- **GitHub Discussions**: [Join the Discussion](https://github.com/yourusername/cnc-controller-ui/discussions)
 
 ---
 
