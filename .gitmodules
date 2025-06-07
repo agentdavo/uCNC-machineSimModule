@@ -7,3 +7,6 @@
 [submodule "FreeRTOS"]
 	path = FreeRTOS
 	url = https://github.com/FreeRTOS/FreeRTOS-Kernel.git
+[submodule "cncvis"]
+	path = cncvis
+	url = https://github.com/agentdavo/cncvis.git
