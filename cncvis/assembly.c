@@ -184,7 +184,7 @@ ucncAssembly *findAssemblyByName(ucncAssembly *rootAssembly, const char *name)
     if (!rootAssembly || !name)
         return NULL;
 
-    // printf("Checking assembly: %s\n", rootAssembly->name);
+    printf("Checking assembly: %s\n", rootAssembly->name);
 
     // Check if the root assembly's name matches
     if (strcmp(rootAssembly->name, name) == 0)

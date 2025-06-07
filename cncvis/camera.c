@@ -1,10 +1,13 @@
 /* camera.c */
 
 #include "camera.h"
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
 extern ucncCamera *globalCamera;
-
-// Implementation of ucncCameraNew, ucncCameraApply, ucncCameraFree
+extern ZBuffer *globalFramebuffer;
 
 ucncCamera* ucncCameraNew(float posX, float posY, float posZ, float upX, float upY, float upZ) {
     ucncCamera *camera = malloc(sizeof(ucncCamera));
@@ -22,12 +25,21 @@ ucncCamera* ucncCameraNew(float posX, float posY, float posZ, float upX, float u
     camera->upZ = upZ;
     camera->directionX = 0.0f;
     camera->directionY = 0.0f;
-    camera->directionZ = 0.0f;
+    camera->directionZ = -1.0f;  // Default looking along negative Z
 
     // Set the initial yaw, pitch, and zoom level
     camera->yaw = 0.0f;
     camera->pitch = 0.0f;
     camera->zoomLevel = 1.0f;
+    
+    // Initialize new CAD-like camera parameters
+    camera->fov = 45.0f;                // Standard 45-degree FOV
+    camera->targetX = 0.0f;             // Look at origin by default
+    camera->targetY = 0.0f;
+    camera->targetZ = 0.0f;
+    camera->distance = sqrtf(posX*posX + posY*posY + posZ*posZ); // Initial distance
+    camera->orthoMode = false;          // Start with perspective projection
+    camera->orthoScale = 1.0f;          // Default orthographic scale
 
     return camera;
 }
@@ -39,13 +51,11 @@ void gluPerspective(float fovY, float aspect, float zNear, float zFar) {
     glFrustum(-fW, fW, -fH, fH, zNear, zFar);
 }
 
-/*
- * gluLookAt (adapted from Mesa)
- */
+
 void gluLookAt_custom(float eyex, float eyey, float eyez,
                       float centerx, float centery, float centerz,
-                      float upx, float upy, float upz)
-{
+                      float upx, float upy, float upz) {
+    // Implementation unchanged
     float m[16];
     float x[3], y[3], z[3];
     float mag;
@@ -110,58 +120,36 @@ void gluLookAt_custom(float eyex, float eyey, float eyez,
 void ucncCameraApply(ucncCamera *camera) {
     if (!camera) return;
 
-    // Apply the camera transformation using gluLookAt (or custom implementation)
+    // Set up projection matrix
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    
+    if (camera->orthoMode) {
+        // Orthographic projection
+        float aspect = (float)globalFramebuffer->xsize / (float)globalFramebuffer->ysize;
+        float size = 100.0f * camera->orthoScale;
+        glOrtho(-size * aspect, size * aspect, -size, size, 0.1f, 5000.0f);
+    } else {
+        // Perspective projection
+        float aspect = (float)globalFramebuffer->xsize / (float)globalFramebuffer->ysize;
+        gluPerspective(camera->fov, aspect, 0.1f, 5000.0f);
+    }
+    
+    // Switch to modelview matrix
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    // Apply the camera transformation
     gluLookAt_custom(
-        camera->positionX, camera->positionY, camera->positionZ,   // Camera position
-        0.0f, 0.0f, 0.0f,                                         // Look at the origin
-        camera->upX, camera->upY, camera->upZ                      // Up vector
+        camera->positionX, camera->positionY, camera->positionZ,  // Camera position
+        camera->targetX, camera->targetY, camera->targetZ,        // Look at target
+        camera->upX, camera->upY, camera->upZ                     // Up vector
     );
-
-    // Apply scaling if necessary (scaling should be applied after the camera transformation)
-    glScalef(camera->zoomLevel, camera->zoomLevel, camera->zoomLevel);
-
 }
 
 
-/**
- * @brief Update the camera's position and orientation to create an orbiting effect based on time.
- * @param camera Pointer to the ucncCamera object.
- * @param radius Distance from the origin for the orbit.
- * @param elevation Height of the camera above the origin.
- * @param rotationSpeed Degrees to rotate per second.
- */
-void updateCameraOrbit(ucncCamera *camera, float radius, float elevation, float rotationSpeed)
-{
-    if (!camera) {
-        fprintf(stderr, "Error: Camera pointer is NULL.\n");
-        return;
-    }
-
-    // Get the current time in seconds
-    double currentTime = (double)clock() / CLOCKS_PER_SEC;
-
-    // Calculate the current angle in degrees based on time and rotation speed
-    float angle = fmod(currentTime * rotationSpeed, 360.0f); // Keep angle in range [0, 360)
-    float rad = angle * M_PI / 180.0f;  // Convert angle to radians
-
-    // Update the camera's position based on the calculated angle
-    camera->positionX = radius * sinf(rad);
-    camera->positionY = radius * cosf(rad);
-    camera->positionZ = elevation;
-
-    // Calculate the direction vector from the camera to the origin (target at 0,0,0)
-    float dirX = -camera->positionX;
-    float dirY = -camera->positionY;
-    float dirZ = -camera->positionZ;
-
-    // Calculate yaw and pitch angles to orient the camera towards the origin
-    float yaw = atan2f(dirX, dirY) * (180.0f / M_PI);  // Yaw is the rotation around the Z-axis
-    float distanceXY = sqrtf(dirX * dirX + dirY * dirY);  // Distance in the XY plane
-    float pitch = atan2f(dirZ, distanceXY) * (180.0f / M_PI);  // Pitch is the vertical angle
-
-    // Set the camera's orientation
-    camera->yaw = yaw;
-    camera->pitch = 180.0f + pitch;
+float glm_rad(float degrees) {
+    return degrees * (M_PI / 180.0f);
 }
 
 
@@ -174,77 +162,280 @@ void printCameraDetails(ucncCamera *camera) {
     // Print the camera pointer and its values
     printf("Camera Pointer: %p\n", (void *)camera);
     printf("Camera Position: X: %.2f, Y: %.2f, Z: %.2f\n", camera->positionX, camera->positionY, camera->positionZ);
+    printf("Camera Target: X: %.2f, Y: %.2f, Z: %.2f\n", camera->targetX, camera->targetY, camera->targetZ);
     printf("Camera Up Direction: X: %.2f, Y: %.2f, Z: %.2f\n", camera->upX, camera->upY, camera->upZ);
     printf("Camera Yaw: %.2f, Pitch: %.2f\n", camera->yaw, camera->pitch);
+    printf("Camera FOV: %.2f, Distance: %.2f\n", camera->fov, camera->distance);
+    printf("Camera Orthographic: %s, Scale: %.2f\n", camera->orthoMode ? "Yes" : "No", camera->orthoScale);
     printf("Camera Zoom Level: %.2f\n", camera->zoomLevel);
     printf("Camera Direction: X: %.2f, Y: %.2f, Z: %.2f\n", camera->directionX, camera->directionY, camera->directionZ);
 }
 
 
-// Helper function to convert degrees to radians
-float glm_rad(float degrees) {
-    return degrees * (M_PI / 180.0f);
+// Update the camera's direction and recompute its view matrix
+void update_camera_matrix(ucncCamera *camera) {
+    if (!camera) return;
+
+    // Calculate the direction vector from camera to target
+    camera->directionX = camera->targetX - camera->positionX;
+    camera->directionY = camera->targetY - camera->positionY;
+    camera->directionZ = camera->targetZ - camera->positionZ;
+
+    // Normalize the direction vector
+    float dir_length = sqrt(
+        camera->directionX * camera->directionX +
+        camera->directionY * camera->directionY +
+        camera->directionZ * camera->directionZ
+    );
+    
+    if (dir_length > 0.0001f) {
+        camera->directionX /= dir_length;
+        camera->directionY /= dir_length;
+        camera->directionZ /= dir_length;
+
+        // Update distance (in case it was changed externally)
+        camera->distance = dir_length;
+    }
+
+    // Ensure the up vector is normalized
+    float up_length = sqrt(
+        camera->upX * camera->upX +
+        camera->upY * camera->upY +
+        camera->upZ * camera->upZ
+    );
+    
+    if (up_length > 0.0001f) {
+        camera->upX /= up_length;
+        camera->upY /= up_length;
+        camera->upZ /= up_length;
+    }
 }
+
 
 // Update camera view based on mouse movement (dx, dy)
 void update_camera_view(int32_t dx, int32_t dy) {
-    // Sensitivity factor (can be fine-tuned)
-    const float sensitivity = 10.0f;
-
-    // Update yaw and pitch based on mouse movement
-    globalCamera->yaw += (float)dx * sensitivity;
-
-    float pitch_change = (float)dy * sensitivity;
-    globalCamera->pitch += pitch_change;
-
-    // Clamp pitch to prevent gimbal lock (avoid camera flipping)
-    if (globalCamera->pitch > 89.0f) globalCamera->pitch = 89.0f;
-    if (globalCamera->pitch < -89.0f) globalCamera->pitch = -89.0f;
-
-    // Wrap yaw to keep it in the range [0, 360)
-    if (globalCamera->yaw < 0.0f) globalCamera->yaw += 360.0f;
-    if (globalCamera->yaw >= 360.0f) globalCamera->yaw -= 360.0f;
-
-    // Update the camera matrix based on new yaw/pitch
-    update_camera_matrix(globalCamera);
+    // Updated to use orbit around target instead of FPS-style rotation
+    ucncCameraOrbit(globalCamera, dx * 0.1f, dy * 0.1f);
 }
 
 
-// Update the camera's direction and recompute its view matrix
-void update_camera_matrix(ucncCamera *camera) {
+void updateCameraOrbit(ucncCamera *camera, float radius, float elevation, float rotationSpeed) {
+    if (!camera) return;
 
-    // Calculate the direction vector (forward vector) based on yaw and pitch angles
-    camera->directionX = cos(glm_rad(camera->yaw)) * cos(glm_rad(camera->pitch));
-    camera->directionY = sin(glm_rad(camera->pitch));
-    camera->directionZ = sin(glm_rad(camera->yaw)) * cos(glm_rad(camera->pitch));
+    // Get the current time in seconds
+    double currentTime = (double)clock() / CLOCKS_PER_SEC;
 
-    // Normalize the direction vector to ensure consistent movement speed
-    float dir_length = sqrt(camera->directionX * camera->directionX +
-                            camera->directionY * camera->directionY +
-                            camera->directionZ * camera->directionZ);
-    camera->directionX /= dir_length;
-    camera->directionY /= dir_length;
-    camera->directionZ /= dir_length;
+    // Calculate the current angle in degrees based on time and rotation speed
+    float angle = fmod(currentTime * rotationSpeed, 360.0f); // Keep angle in range [0, 360)
+    float rad = angle * M_PI / 180.0f;  // Convert angle to radians
 
-    // Compute the camera's "look at" target position, based on its current direction
-    float targetX = camera->positionX + camera->directionX;
-    float targetY = camera->positionY + camera->directionY;
-    float targetZ = camera->positionZ + camera->directionZ;
+    // Set the target to origin
+    camera->targetX = 0.0f;
+    camera->targetY = 0.0f;
+    camera->targetZ = 0.0f;
 
-    // Ensure the up vector is normalized
-    float up_length = sqrt(camera->upX * camera->upX +
-                           camera->upY * camera->upY +
-                           camera->upZ * camera->upZ);
-    camera->upX /= up_length;
-    camera->upY /= up_length;
-    camera->upZ /= up_length;
+    // Update the camera's position based on the calculated angle
+    camera->positionX = radius * sinf(rad);
+    camera->positionY = radius * cosf(rad);
+    camera->positionZ = elevation;
+    
+    // Update distance
+    camera->distance = radius;
 
-    // Use the camera's position, target, and up vector to calculate the view matrix
-    gluLookAt_custom(
-        camera->positionX, camera->positionY, camera->positionZ,  // Camera position (eye)
-        targetX, targetY, targetZ,                                // Target position (where the camera looks)
-        camera->upX, camera->upY, camera->upZ                     // Up vector
-    );
+    // Update the camera matrix based on new position and target
+    update_camera_matrix(camera);
+}
+
+
+// Toggle between orthographic and perspective projection
+void ucncCameraToggleProjection(ucncCamera *camera) {
+    if (!camera) return;
+    camera->orthoMode = !camera->orthoMode;
+}
+
+
+// Pan the camera (move parallel to view plane)
+void ucncCameraPan(ucncCamera *camera, float dx, float dy) {
+    if (!camera) return;
+    
+    // Calculate right vector (cross product of direction and up)
+    float rightX = camera->upY * camera->directionZ - camera->upZ * camera->directionY;
+    float rightY = camera->upZ * camera->directionX - camera->upX * camera->directionZ;
+    float rightZ = camera->upX * camera->directionY - camera->upY * camera->directionX;
+    
+    // Normalize right vector
+    float rightLength = sqrtf(rightX*rightX + rightY*rightY + rightZ*rightZ);
+    if (rightLength > 0.0001f) {
+        rightX /= rightLength;
+        rightY /= rightLength;
+        rightZ /= rightLength;
+    }
+    
+    // Scale movement based on distance to target for consistent panning
+    float panScale = camera->distance * 0.001f;
+    
+    // Calculate the actual movement based on right and up vectors
+    float panFactorX = (dx * rightX + dy * camera->upX) * panScale;
+    float panFactorY = (dx * rightY + dy * camera->upY) * panScale;
+    float panFactorZ = (dx * rightZ + dy * camera->upZ) * panScale;
+    
+    // Move both camera position and target (to maintain relative positioning)
+    camera->positionX += panFactorX;
+    camera->positionY += panFactorY;
+    camera->positionZ += panFactorZ;
+    
+    camera->targetX += panFactorX;
+    camera->targetY += panFactorY;
+    camera->targetZ += panFactorZ;
+}
+
+
+// Orbit the camera around its target point
+void ucncCameraOrbit(ucncCamera *camera, float deltaYaw, float deltaPitch) {
+    if (!camera) return;
+    
+    // Update yaw and pitch
+    camera->yaw += deltaYaw;
+    camera->pitch += deltaPitch;
+    
+    // Clamp pitch to avoid gimbal lock
+    if (camera->pitch > 89.0f) camera->pitch = 89.0f;
+    if (camera->pitch < -89.0f) camera->pitch = -89.0f;
+    
+    // Recalculate camera position based on orbit
+    float horizontalDistance = camera->distance * cosf(glm_rad(camera->pitch));
+    camera->positionX = camera->targetX + horizontalDistance * cosf(glm_rad(camera->yaw));
+    camera->positionZ = camera->targetZ + horizontalDistance * sinf(glm_rad(camera->yaw));
+    camera->positionY = camera->targetY + camera->distance * sinf(glm_rad(camera->pitch));
+    
+    // Update direction vector
+    update_camera_matrix(camera);
+}
+
+
+// Zoom the camera (adjust FOV or move closer/further from target)
+void ucncCameraZoom(ucncCamera *camera, float zoomDelta) {
+    if (!camera) return;
+    
+    if (camera->orthoMode) {
+        // In orthographic mode, adjust the scale
+        camera->orthoScale = fmaxf(0.1f, camera->orthoScale - zoomDelta * 0.05f);
+    } else {
+        // In perspective mode, adjust FOV
+        camera->fov = fmaxf(10.0f, fminf(120.0f, camera->fov - zoomDelta));
+        
+        // Alternative: dolly zoom (move camera closer/further)
+        /*
+        // Calculate new distance, ensuring it doesn't get too close to target
+        float newDistance = fmaxf(0.1f, camera->distance - zoomDelta);
+        float ratio = newDistance / camera->distance;
+        
+        // Update distance
+        camera->distance = newDistance;
+        
+        // Recalculate position based on new distance
+        camera->positionX = camera->targetX + (camera->positionX - camera->targetX) * ratio;
+        camera->positionY = camera->targetY + (camera->positionY - camera->targetY) * ratio;
+        camera->positionZ = camera->targetZ + (camera->positionZ - camera->targetZ) * ratio;
+        */
+    }
+}
+
+
+// Set camera target point
+void ucncCameraSetTarget(ucncCamera *camera, float x, float y, float z) {
+    if (!camera) return;
+    
+    camera->targetX = x;
+    camera->targetY = y;
+    camera->targetZ = z;
+    
+    // Update distance and direction
+    float dx = camera->positionX - camera->targetX;
+    float dy = camera->positionY - camera->targetY;
+    float dz = camera->positionZ - camera->targetZ;
+    camera->distance = sqrtf(dx*dx + dy*dy + dz*dz);
+    
+    update_camera_matrix(camera);
+}
+
+
+// Handle mouse wheel zoom event
+void ucncCameraHandleMouseWheel(ucncCamera *camera, int wheelDelta) {
+    if (!camera) return;
+    
+    // Convert wheelDelta to a zoom factor
+    float zoomFactor = (float)wheelDelta * 2.0f;
+    
+    // Call the zoom function
+    ucncCameraZoom(camera, zoomFactor);
+}
+
+
+// Reset view to default
+void ucncCameraResetView(ucncCamera *camera) {
+    if (!camera) return;
+    
+    // Reset target to origin
+    camera->targetX = 0.0f;
+    camera->targetY = 0.0f;
+    camera->targetZ = 0.0f;
+    
+    // Reset camera position to default isometric view
+    camera->distance = 200.0f;
+    camera->yaw = 45.0f;
+    camera->pitch = 35.0f;
+    
+    // Reset projection settings
+    camera->fov = 45.0f;
+    camera->orthoMode = false;
+    camera->orthoScale = 1.0f;
+    camera->zoomLevel = 1.0f;
+    
+    // Reset up vector
+    camera->upX = 0.0f;
+    camera->upY = 1.0f;
+    camera->upZ = 0.0f;
+    
+    // Recalculate position
+    ucncCameraOrbit(camera, 0.0f, 0.0f);
+}
+
+
+// CAD view presets
+void ucncCameraSetFrontView(ucncCamera *camera) {
+    if (!camera) return;
+    
+    camera->yaw = 0.0f;
+    camera->pitch = 0.0f;
+    ucncCameraOrbit(camera, 0.0f, 0.0f);
+}
+
+
+void ucncCameraSetTopView(ucncCamera *camera) {
+    if (!camera) return;
+    
+    camera->yaw = 0.0f;
+    camera->pitch = 89.0f;
+    ucncCameraOrbit(camera, 0.0f, 0.0f);
+}
+
+
+void ucncCameraSetRightView(ucncCamera *camera) {
+    if (!camera) return;
+    
+    camera->yaw = 90.0f;
+    camera->pitch = 0.0f;
+    ucncCameraOrbit(camera, 0.0f, 0.0f);
+}
+
+
+void ucncCameraSetIsometricView(ucncCamera *camera) {
+    if (!camera) return;
+    
+    camera->yaw = 45.0f;
+    camera->pitch = 35.0f;
+    ucncCameraOrbit(camera, 0.0f, 0.0f);
 }
 
 

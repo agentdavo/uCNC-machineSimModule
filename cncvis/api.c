@@ -71,6 +71,23 @@ void ucncUpdateMotion(ucncAssembly *assembly, float value)
     }
 }
 
+void cncvis_handle_mouse_motion(int dx, int dy)
+{
+    // TODO: Implement mouse motion handling for CNC visualization
+    (void)dx;
+    (void)dy;
+}
+
+void cncvis_handle_mouse_wheel(int wheel_delta)
+{
+    if (!globalCamera)
+        return;
+    // Use the proper CAD camera zoom function
+    ucncCameraZoom(globalCamera, wheel_delta * 2.0f);
+    // Update camera matrix
+    update_camera_matrix(globalCamera);
+}
+
 // Set all assemblies to their home position
 void ucncSetAllAssembliesToHome(ucncAssembly *assembly)
 {
@@ -115,7 +132,6 @@ void ucncSetZBufferDimensions(int width, int height)
         fprintf(stderr, "Failed to initialize Z-buffer with dimensions %d x %d.\n", width, height);
         return;
     }
-
 }
 
 // Expose Z-buffer output for external use
@@ -164,8 +180,22 @@ int cncvis_init(const char *configFile)
 
     // Initialize the camera and Y axis as up
     globalCamera = ucncCameraNew(800.0f, 800.0f, 400.0f, 0.0f, 0.0f, 1.0f);
+
+    // Set initial target to origin
+    globalCamera->targetX = 0.0f;
+    globalCamera->targetY = 0.0f;
+    globalCamera->targetZ = 0.0f;
+    globalCamera->fov = 45.0f;
+    globalCamera->distance = sqrtf(800.0f * 800.0f + 800.0f * 800.0f + 400.0f * 400.0f);
+    globalCamera->orthoMode = false;
+    globalCamera->orthoScale = 1.0f;
+
     printCameraDetails(globalCamera);
 
+     // Initialize the OSD system after TinyGL is set up
+    osdInit(globalFramebuffer);
+    osdSetDefaultStyle(1.0f, 1.0f, 0.0f, 1.5f, 1); // Yellow text, 1.5x scale
+    
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 
     // Clear the color and depth buffers before rendering
@@ -289,9 +319,68 @@ void cncvis_render(void)
     ucncAssemblyRender(globalScene);
     drawAxis(500.0f);
 
-    // Calculate and render FPS
+    // Calculate and display FPS
     float fps = calculateFPS();
-    renderFPSData(frameCount, fps);
+
+    // Get the current position of the machine's tool or active component
+    // We'll use a reasonable default if no "tool" assembly is found
+    float machine_x = 0.0f, machine_y = 0.0f, machine_z = 0.0f;
+    
+    // Find the "tool" assembly or any assembly that represents the tool position
+    ucncAssembly *tool = findAssemblyByName(globalScene, "tool");
+    if (tool) {
+        // Use the tool's current position
+        machine_x = tool->positionX;
+        machine_y = tool->positionY;
+        machine_z = tool->positionZ;
+    } else {
+        // If no tool assembly is found, try to find another meaningful assembly
+        // This is just an example - adjust based on your machine structure
+        ucncAssembly *endEffector = findAssemblyByName(globalScene, "end_effector");
+        if (endEffector) {
+            machine_x = endEffector->positionX;
+            machine_y = endEffector->positionY;
+            machine_z = endEffector->positionZ;
+        }
+        // Otherwise, it will use the default 0,0,0 values
+    }
+
+    // Draw machine position information
+    osdDrawTextf(10, 10, OSD_ALIGN_LEFT, "X: %.3f Y: %.3f Z: %.3f", 
+                 machine_x, machine_y, machine_z);
+    
+    // Draw machine status in a highlighted box
+    int statusX = globalFramebuffer->xsize - 10;
+    int statusY = 10;
+    
+    // Create a combined status text with RUNNING and FPS on separate lines
+    char statusText[64];
+    snprintf(statusText, sizeof(statusText), "RUNNING\n%.1f FPS", fps);
+    
+    // Calculate text size for background - account for two lines
+    OSDStyle customStyle = {0.0f, 1.0f, 0.0f, 1.2f, 1}; // Green text
+    int textWidth = calculateTextWidth("RUNNING", customStyle.scale, customStyle.spacing);
+    int fpsWidth = calculateTextWidth("100.0 FPS", customStyle.scale, customStyle.spacing);
+    
+    // Use the wider of the two widths
+    if (fpsWidth > textWidth) {
+        textWidth = fpsWidth;
+    }
+    
+    // Calculate height for two lines of text
+    int textHeight = 8 * 2 * customStyle.scale + 4;
+    
+    // Draw background - make it taller for two lines
+    osdDrawRect(statusX - textWidth - 6, statusY - 2, 
+                textWidth + 12, textHeight + 4, 
+                0.0f, 0.0f, 0.0f, 0.7f); // Semi-transparent black background
+    
+    // Draw text on top
+    osdDrawTextStyled(statusText, statusX, statusY, OSD_ALIGN_RIGHT, &customStyle);
+    
+    // Draw help text at bottom
+    osdDrawTextf(globalFramebuffer->xsize/2, globalFramebuffer->ysize - 20, 
+                OSD_ALIGN_CENTER, "F1-F5: Views | Space: Toggle Projection");
 }
 
 void cncvis_cleanup()

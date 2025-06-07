@@ -103,11 +103,14 @@ int main(int argc, char **argv)
 #if LV_USE_OS == LV_OS_NONE
     while (1)
     {
-        // Handle inputs
+        // Handle inputs (this now also handles LVGL timer/events)
         process_mouse_events();
         process_keyboard_events();
-
-        lv_timer_handler();
+        
+        // No need to call lv_timer_handler() again - it's now in process_mouse_events()
+        
+        // Small delay to avoid 100% CPU usage
+        SDL_Delay(10);
     }
 #elif LV_USE_OS == LV_OS_FREERTOS
     freertos_main(); // For FreeRTOS, delegate to the appropriate task manager
@@ -168,72 +171,176 @@ static lv_display_t *hal_init(int32_t w, int32_t h)
 
 // Function definitions for mouse events
 static void process_mouse_events(void) {
-    SDL_Event event;
     static int32_t lastMouseX = 0, lastMouseY = 0;
-    static bool is_middle_dragging = false;  // Flag for middle mouse button drag
+    static bool is_left_dragging = false;   // Flag for left mouse button drag (panning)
+    static bool is_middle_dragging = false; // Flag for middle mouse button drag (rotating)
+    static bool is_right_dragging = false;  // Flag for right mouse button drag (optional: add special behavior)
+    static bool is_shift_pressed = false;   // Track shift key for modifier combinations
+    static bool is_ctrl_pressed = false;    // Track ctrl key for modifier combinations
 
-    while (SDL_PollEvent(&event)) {
-        switch (event.type) {
-            case SDL_MOUSEMOTION: {
-                if (is_dragging || is_middle_dragging) {
-                    // Calculate the difference in X and Y movements
-                    int32_t dx = event.motion.x - lastMouseX;
-                    int32_t dy = event.motion.y - lastMouseY;
-
-                    // Update the last known mouse position
-                    lastMouseX = event.motion.x;
-                    lastMouseY = event.motion.y;
-
-                    // If middle mouse button is dragging, rotate the camera
-                    if (is_middle_dragging) {
-                        // Rotate the camera view based on mouse movement (like CAD)
-                        update_camera_view(dx, dy);
-                    }
-                }
-                break;
-            }
-
-            case SDL_MOUSEBUTTONDOWN: {
-                if (event.button.button == SDL_BUTTON_LEFT) {
-                    // Start dragging for left mouse button
-                    is_dragging = true;
-                    lastMouseX = event.motion.x;
-                    lastMouseY = event.motion.y;
-                } else if (event.button.button == SDL_BUTTON_MIDDLE) {
-                    // Start dragging for middle mouse button (rotate view)
-                    is_middle_dragging = true;
-                    lastMouseX = event.motion.x;
-                    lastMouseY = event.motion.y;
-                }
-                break;
-            }
-
-            case SDL_MOUSEBUTTONUP: {
-                if (event.button.button == SDL_BUTTON_LEFT) {
-                    // Stop dragging for left mouse button
-                    is_dragging = false;
-                } else if (event.button.button == SDL_BUTTON_MIDDLE) {
-                    // Stop dragging for middle mouse button
-                    is_middle_dragging = false;
-                }
-                break;
-            }
-
-            case SDL_MOUSEWHEEL: {
-                // Handle zoom (scroll wheel)
-                if (event.wheel.y > 0) {
-                    globalCamera->zoomLevel += 1.0f;
-                } else if (event.wheel.y < 0) {
-                    globalCamera->zoomLevel -= 1.0f;
-                }
-                break;
-            }
-
-            default:
-                break;
+    // First, get current mouse state
+    int mouse_x, mouse_y;
+    uint32_t mouse_buttons = SDL_GetMouseState(&mouse_x, &mouse_y);
+    
+    // Check if mouse is over the 3D canvas
+    bool is_over_canvas = false;
+    if (canvas != NULL) {
+        lv_area_t canvas_coords;
+        lv_obj_get_coords(canvas, &canvas_coords);
+        
+        if (mouse_x >= canvas_coords.x1 && mouse_x <= canvas_coords.x2 &&
+            mouse_y >= canvas_coords.y1 && mouse_y <= canvas_coords.y2) {
+            is_over_canvas = true;
         }
     }
-    printCameraDetails(globalCamera);
+    
+    // Process SDL events for keyboard and system events
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+        // First, dispatch the event to LVGL
+        // Instead of non-existent lv_sdl_event_handler, just use SDL_PushEvent
+        // after we've processed it for CAD functions
+        
+        // Handle keyboard events for CAD controls
+        if (event.type == SDL_KEYDOWN) {
+            if (event.key.keysym.sym == SDLK_LSHIFT || event.key.keysym.sym == SDLK_RSHIFT) {
+                is_shift_pressed = true;
+            }
+            if (event.key.keysym.sym == SDLK_LCTRL || event.key.keysym.sym == SDLK_RCTRL) {
+                is_ctrl_pressed = true;
+            }
+            // Handle CAD view preset hotkeys
+            if (event.key.keysym.sym == SDLK_F1) {
+                printf("Setting Front View\n");
+                ucncCameraSetFrontView(globalCamera);
+                // Force immediate update of the view
+                update_camera_matrix(globalCamera);
+                // Force a redraw
+                lv_obj_invalidate(canvas);
+            } else if (event.key.keysym.sym == SDLK_F2) {
+                printf("Setting Top View\n");
+                ucncCameraSetTopView(globalCamera);
+                update_camera_matrix(globalCamera);
+                lv_obj_invalidate(canvas);
+            } else if (event.key.keysym.sym == SDLK_F3) {
+                printf("Setting Right View\n");
+                ucncCameraSetRightView(globalCamera);
+                update_camera_matrix(globalCamera);
+                lv_obj_invalidate(canvas);
+            } else if (event.key.keysym.sym == SDLK_F4) {
+                printf("Setting Isometric View\n");
+                ucncCameraSetIsometricView(globalCamera);
+                update_camera_matrix(globalCamera);
+                lv_obj_invalidate(canvas);
+            } else if (event.key.keysym.sym == SDLK_F5) {
+                printf("Resetting View\n");
+                ucncCameraResetView(globalCamera);
+                update_camera_matrix(globalCamera);
+                lv_obj_invalidate(canvas);
+            } else if (event.key.keysym.sym == SDLK_SPACE) {
+                printf("Toggling Projection Mode\n");
+                ucncCameraToggleProjection(globalCamera);
+                lv_obj_invalidate(canvas);
+            }
+        }
+        else if (event.type == SDL_KEYUP) {
+            if (event.key.keysym.sym == SDLK_LSHIFT || event.key.keysym.sym == SDLK_RSHIFT) {
+                is_shift_pressed = false;
+            }
+            if (event.key.keysym.sym == SDLK_LCTRL || event.key.keysym.sym == SDLK_RCTRL) {
+                is_ctrl_pressed = false;
+            }
+        }
+        else if (event.type == SDL_QUIT) {
+            exit(0);
+        }
+        else if (event.type == SDL_MOUSEWHEEL && is_over_canvas) {
+            // Use the dedicated wheel handler for CAD-like zoom
+            float wheel_sensitivity = is_shift_pressed ? 1.0f : 3.0f;
+            ucncCameraHandleMouseWheel(globalCamera, event.wheel.y * wheel_sensitivity);
+        }
+
+        // LVGL will get events through its input drivers
+        // We don't need to do anything special here
+    }
+    
+    // Now handle mouse dragging for CAD-like controls
+    if (is_over_canvas || is_left_dragging || is_middle_dragging || is_right_dragging) {
+        // Check mouse button states
+        bool left_button_down = (mouse_buttons & SDL_BUTTON_LMASK) != 0;
+        bool middle_button_down = (mouse_buttons & SDL_BUTTON_MMASK) != 0;
+        bool right_button_down = (mouse_buttons & SDL_BUTTON_RMASK) != 0;
+        
+        // Handle button press/release
+        if (left_button_down && !is_left_dragging) {
+            // Left button just pressed
+            is_left_dragging = true;
+            lastMouseX = mouse_x;
+            lastMouseY = mouse_y;
+        } else if (!left_button_down && is_left_dragging) {
+            // Left button released
+            is_left_dragging = false;
+        }
+        
+        if (middle_button_down && !is_middle_dragging) {
+            // Middle button just pressed
+            is_middle_dragging = true;
+            lastMouseX = mouse_x;
+            lastMouseY = mouse_y;
+        } else if (!middle_button_down && is_middle_dragging) {
+            // Middle button released
+            is_middle_dragging = false;
+        }
+        
+        if (right_button_down && !is_right_dragging) {
+            // Right button just pressed
+            is_right_dragging = true;
+            lastMouseX = mouse_x;
+            lastMouseY = mouse_y;
+        } else if (!right_button_down && is_right_dragging) {
+            // Right button released
+            is_right_dragging = false;
+        }
+        
+        // Process mouse movement for active drags
+        if (is_left_dragging || is_middle_dragging || is_right_dragging) {
+            // Calculate delta movement
+            int32_t dx = mouse_x - lastMouseX;
+            int32_t dy = mouse_y - lastMouseY;
+            
+            // Only process if there's actual movement
+            if (dx != 0 || dy != 0) {
+                if (is_middle_dragging) {
+                    // Middle button: Rotate the camera view (orbit around target)
+                    float sensitivity = is_shift_pressed ? 0.125f : 0.5f;
+                    ucncCameraOrbit(globalCamera, dx * sensitivity, dy * sensitivity);
+                } 
+                else if (is_left_dragging) {
+                    // Left button: Pan the view
+                    float pan_sensitivity = is_shift_pressed ? 0.5f : 2.0f;
+                    ucncCameraPan(globalCamera, dx * pan_sensitivity, dy * pan_sensitivity);
+                }
+                else if (is_right_dragging) {
+                    // Right button: Zoom
+                    float zoom_factor = is_shift_pressed ? 1.0f : 4.0f;
+                    ucncCameraZoom(globalCamera, -dy * zoom_factor * 0.1f);
+                }
+            }
+            
+            // Update last position
+            lastMouseX = mouse_x;
+            lastMouseY = mouse_y;
+        }
+    }
+    
+    // Let LVGL process its timers and input handling
+    lv_timer_handler();
+
+    // Debug output (reduced frequency)
+    static int debug_counter = 0;
+    if (debug_counter++ % 60 == 0) { // Only print every 60 frames
+        printCameraDetails(globalCamera);
+    }
 }
 
 
@@ -264,60 +371,68 @@ static void process_keyboard_events(void) {
         }
     }
 
-
-    // Calculate the right vector (cross product of direction and up vectors for strafing)
-    float rightZ = globalCamera->directionZ * globalCamera->upY - globalCamera->directionY * globalCamera->upZ;
-    float rightX = globalCamera->directionX * globalCamera->upZ - globalCamera->directionZ * globalCamera->upX;
-    float rightY = globalCamera->directionY * globalCamera->upX - globalCamera->directionX * globalCamera->upY;
-
-    // Normalize the right vector
-    float rightMagnitude = sqrt(rightX * rightX + rightY * rightY + rightZ * rightZ);
-    rightX /= rightMagnitude;
-    rightY /= rightMagnitude;
-    rightZ /= rightMagnitude;
-
-    // Forward/backward movement (along camera's direction)
+    // CAD-like camera movement - using the target-based orbit system
+    float moveSpeed = 5.0f;
+    
+    // If shift is pressed, slow down for precision
+    if (state[SDL_SCANCODE_LSHIFT] || state[SDL_SCANCODE_RSHIFT]) {
+        moveSpeed *= 0.25f;
+    }
+    
+    // Handle camera movement with WASD, QE
+    // This is now more CAD-like, moving relative to camera view
     if (state[SDL_SCANCODE_W]) {
-        // Move forward
-        globalCamera->positionX += globalCamera->directionX * 10.0f;
-        globalCamera->positionY += globalCamera->directionY * 10.0f;
-        globalCamera->positionZ += globalCamera->directionZ * 10.0f;
+        // Move target point forward (along camera direction)
+        float dx = globalCamera->directionX * moveSpeed;
+        float dy = globalCamera->directionY * moveSpeed;
+        float dz = globalCamera->directionZ * moveSpeed;
+        ucncCameraSetTarget(globalCamera, 
+                           globalCamera->targetX + dx,
+                           globalCamera->targetY + dy,
+                           globalCamera->targetZ + dz);
     }
     if (state[SDL_SCANCODE_S]) {
-        // Move backward
-        globalCamera->positionX -= globalCamera->directionX * 10.0f;
-        globalCamera->positionY -= globalCamera->directionY * 10.0f;
-        globalCamera->positionZ -= globalCamera->directionZ * 10.0f;
+        // Move target point backward
+        float dx = globalCamera->directionX * moveSpeed;
+        float dy = globalCamera->directionY * moveSpeed;
+        float dz = globalCamera->directionZ * moveSpeed;
+        ucncCameraSetTarget(globalCamera, 
+                           globalCamera->targetX - dx,
+                           globalCamera->targetY - dy,
+                           globalCamera->targetZ - dz);
     }
 
-    // Strafe left/right (using the right vector for strafing)
+    // Calculate right vector for strafing (already normalized)
+    float rightX = globalCamera->upY * globalCamera->directionZ - globalCamera->upZ * globalCamera->directionY;
+    float rightY = globalCamera->upZ * globalCamera->directionX - globalCamera->upX * globalCamera->directionZ;
+    float rightZ = globalCamera->upX * globalCamera->directionY - globalCamera->upY * globalCamera->directionX;
+
     if (state[SDL_SCANCODE_A]) {
-        // Strafe left
-        globalCamera->positionX -= rightX * 10.0f;
-        globalCamera->positionY -= rightY * 10.0f;
-        globalCamera->positionZ -= rightZ * 10.0f;
+        // Strafe target point left
+        ucncCameraSetTarget(globalCamera, 
+                           globalCamera->targetX - rightX * moveSpeed,
+                           globalCamera->targetY - rightY * moveSpeed,
+                           globalCamera->targetZ - rightZ * moveSpeed);
     }
     if (state[SDL_SCANCODE_D]) {
-        // Strafe right
-        globalCamera->positionX += rightX * 10.0f;
-        globalCamera->positionY += rightY * 10.0f;
-        globalCamera->positionZ += rightZ * 10.0f;
+        // Strafe target point right
+        ucncCameraSetTarget(globalCamera, 
+                           globalCamera->targetX + rightX * moveSpeed,
+                           globalCamera->targetY + rightY * moveSpeed,
+                           globalCamera->targetZ + rightZ * moveSpeed);
     }
 
-    // Move up/down (along the up vector)
+    // Move target point up/down along camera's up vector
     if (state[SDL_SCANCODE_Q]) {
-        // Move up (along the up vector)
-        globalCamera->positionX += globalCamera->upX * 10.0f;
-        globalCamera->positionY += globalCamera->upY * 10.0f;
-        globalCamera->positionZ += globalCamera->upZ * 10.0f;
+        ucncCameraSetTarget(globalCamera, 
+                           globalCamera->targetX + globalCamera->upX * moveSpeed,
+                           globalCamera->targetY + globalCamera->upY * moveSpeed,
+                           globalCamera->targetZ + globalCamera->upZ * moveSpeed);
     }
     if (state[SDL_SCANCODE_E]) {
-        // Move down (along the up vector)
-        globalCamera->positionX -= globalCamera->upX * 10.0f;
-        globalCamera->positionY -= globalCamera->upY * 10.0f;
-        globalCamera->positionZ -= globalCamera->upZ * 10.0f;
+        ucncCameraSetTarget(globalCamera, 
+                           globalCamera->targetX - globalCamera->upX * moveSpeed,
+                           globalCamera->targetY - globalCamera->upY * moveSpeed,
+                           globalCamera->targetZ - globalCamera->upZ * moveSpeed);
     }
-
-    // After changing position, update the camera's matrix
-    update_camera_matrix(globalCamera);
 }

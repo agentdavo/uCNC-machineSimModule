@@ -26,6 +26,7 @@ add_library(cncvis STATIC
     light.c
     config.c
     api.c
+    osd.c
 )
 
 # Include directories for cncvis

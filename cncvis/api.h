@@ -7,6 +7,7 @@
 #include "light.h"
 #include "utils.h"
 #include "config.h"
+#include "osd.h"
 
 #define ZGL_FB_WIDTH 512
 #define ZGL_FB_HEIGHT 384
@@ -33,6 +34,9 @@ void ucncFrameReady(ZBuffer *framebuffer);
 
 // load an xml config file
 int ucncLoadNewConfiguration(const char *configFile);
+
+void cncvis_handle_mouse_motion(int dx, int dy);
+void cncvis_handle_mouse_wheel(int wheel_delta);
 
 // Initialization and cleanup (if needed)
 int cncvis_init(const char *configFile);
